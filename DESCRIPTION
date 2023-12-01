@@ -1,0 +1,47 @@
+Package: BayesProj
+Type: Package
+Title: Bayesian Projection of Demographic Indicators
+Version: 0.1.0
+Authors@R: 
+    c(person(given = "John",
+             family = "Bryant",
+             role = c("aut", "cre"),
+             email = "john@bayesiandemography.com"),
+      person(given = "Junni",
+             family = "Zhang",
+             role = "aut",
+             email = "junnizhang@163.com"))
+Description: Bayesian projection of demographic indicators.
+    The projections are based on time series models and,
+    optionally, expert judgement. Expert judgements are specified
+    through 'benchmarks' on future values. Estimation of the
+    time series models is done internally via TMB.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 3.5.0)
+Imports:
+    checkmate,
+    generics,
+    Matrix,
+    matrixStats,
+    splines,
+    stats,
+    tibble,
+    TMB
+Suggests: 
+    covr,
+    dplyr,
+    ggdist,
+    ggplot2,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+RoxygenNote: 7.2.3
+LinkingTo: 
+    TMB,
+    RcppEigen
+Roxygen: list(markdown = TRUE)
+VignetteBuilder: knitr
