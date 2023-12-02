@@ -82,7 +82,8 @@ results from a call to \code{model_ts()}.
 \item \code{\link[BayesRates:total_rate]{BayesRates::total_rate()}} to calculate a demographic
 indicator.
 \item \code{\link[=components]{components()}} for parameters from the fitted model
-\item \code{\link[=augment]{augment()}} for smoothed values of the indicator
+\item \code{\link[=augment]{augment()}} for smoothed and interpolated
+values of the indicator
 from the fitted model, combined with the original data.
 }
 }

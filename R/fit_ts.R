@@ -56,7 +56,8 @@
 #' - [BayesRates::total_rate()] to calculate a demographic
 #'   indicator.
 #' - [components()] for parameters from the fitted model
-#' - [augment()] for smoothed values of the indicator
+#' - [augment()] for smoothed and interpolated
+#'   values of the indicator
 #'   from the fitted model, combined with the original data.
 #'
 #' @export
@@ -100,7 +101,8 @@ fit_ts <- function(data,
 		    byvar = byvar,
 		    spec_ts = spec_ts,
 		    fitted = fitted,
-		    by = by)
+		    by = by,
+                    log = log)
 }
 
 

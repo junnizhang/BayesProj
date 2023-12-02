@@ -5,7 +5,7 @@
 \title{Specify a Damped Linear Trend Model}
 \usage{
 DampedTrend(
-  sale_obs = NULL,
+  scale_obs = NULL,
   scale_level = NULL,
   scale_trend = NULL,
   damp_min = 0.8,
@@ -13,6 +13,9 @@ DampedTrend(
 )
 }
 \arguments{
+\item{scale_obs}{Scale parameter governing
+expected size of observation errors.}
+
 \item{scale_level}{Scale parameter governing
 expected size of errors for level term.}
 
@@ -22,9 +25,6 @@ expected size of errors for trend term.}
 \item{damp_min, damp_max}{Minimum and maximum values
 for damping parameter. Defaults are \code{0.8} and
 \code{0.98}.}
-
-\item{scale_obs}{Scale parameter governing
-expected size of observation errors.}
 }
 \value{
 An object of class \code{"BayesProj_spec_dampedtrend"}.
@@ -53,7 +53,7 @@ where
 normally-distributed 'error' or 'innovation' terms.
 }
 
-Damping parameter \eqn{\phi} is restricted to the interval
+The damping parameter \eqn{\phi} is restricted to the interval
 
 \deqn{\phi_{\text{min}} < \phi < \phi_{\text{max}}}
 

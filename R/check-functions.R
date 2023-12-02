@@ -23,8 +23,7 @@ check_data <- function(data,
     if (timevar %in% byvar)
         stop("'timevar' and 'byvar' overlap")
     nms_classif_vars <- c(timevar, byvar)
-    ## is data frame with no missing values,
-    ## at least 1 row, and at least 2 columns
+    ## is data frame with at least 1 row, and at least 2 columns
     checkmate::check_data_frame(data,
                                  min.rows = 1L,
                                  min.cols = 2L,

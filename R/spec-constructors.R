@@ -1,6 +1,7 @@
 
 ## User-visible constructors --------------------------------------------------
 
+## HAS_TESTS
 #' Specify a Damped Linear Trend Model
 #'
 #' Specify a "damped linear trend" time series model.
@@ -23,7 +24,7 @@
 #' - \eqn{\xi_t}, \eqn{\epsilon_t}, and \eqn{\varepsilon_} are all
 #'    normally-distributed 'error' or 'innovation' terms.
 #'
-#' Damping parameter \eqn{\phi} is restricted to the interval
+#' The damping parameter \eqn{\phi} is restricted to the interval
 #'
 #' \deqn{\phi_{\text{min}} < \phi < \phi_{\text{max}}}
 #'
@@ -58,61 +59,64 @@
 #' DampedTrend(damp_min = 0.9,
 #'             damp_max = 0.95)
 #' @export
-DampedTrend <- function(sale_obs = NULL,
+DampedTrend <- function(scale_obs = NULL,
                         scale_level = NULL,
                         scale_trend = NULL,
                         damp_min = 0.8,
                         damp_max = 0.98) {
-    checkmate::assert_number(scale_obs, lower = 0, finite = TRUE, null.ok = TRUE)
-    checkmate::assert_number(scale_level, lower = 0, finite = TRUE, null.ok = TRUE)
-    checkmate::assert_number(scale_trend, lower = 0, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(scale_obs, lower = 0, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(scale_level, lower = 0, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(scale_trend, lower = 0, finite = TRUE, null.ok = TRUE)
+  if (!is.null(scale_obs))
     check_gt_zero(scale_obs, nm = "scale_obs")
+  if (!is.null(scale_level))
     check_gt_zero(scale_level, nm = "scale_level")
+  if (!is.null(scale_trend))
     check_gt_zero(scale_trend, nm = "scale_trend")
-    checkmate::assert_number(damp_min, lower = 0, upper = 1)
-    checkmate::assert_number(damp_max, lower = 0, upper = 1)
-    if (damp_min > damp_max) {
-        stop(gettextf("'%s' is greater than '%s'",
-                      "damp_min",
-                      "damp_max"),
-             call. = FALSE)
-    }
-    new_BayesProj_spec_ts_dampedtrend(scale_sd_y = scale_obs,
-                                      scale_sd_level = scale_level,
-                                      scale_sd_trend = scale_trend,
-                                      damp_min = damp_min,
-                                      damp_max = damp_max)
+  checkmate::assert_number(damp_min, lower = 0, upper = 1)
+  checkmate::assert_number(damp_max, lower = 0, upper = 1)
+  if (damp_min >= damp_max) {
+    stop(gettextf("'%s' is greater than or equal to '%s'",
+                  "damp_min",
+                  "damp_max"),
+         call. = FALSE)
+  }
+  new_BayesProj_spec_ts_dampedtrend(scale_sd_y = scale_obs,
+                                    scale_sd_level = scale_level,
+                                    scale_sd_trend = scale_trend,
+                                    damp_min = damp_min,
+                                    damp_max = damp_max)
 }
-    
 
 
 ## Internal constructors ------------------------------------------------------
 
+## HAS_TESTS
 #' New Object of Class "BayesProj_spec_ts_dampedtrend"
 #'
-#' @param scale_obs Scale parameter for half-normal
+#' @param scale_sd_y Scale parameter for half-normal
 #' prior for standard deviation for observation errors.
-#' @param scale_level Scale parameter for half-normal
+#' @param scale_sd_level Scale parameter for half-normal
 #' prior for standard deviation for innovations
 #' in level term.
-#' @param scale_trend Scale parameter for half-normal
+#' @param scale_sd_trend Scale parameter for half-normal
 #' prior for standard deviation for innovations
 #' in level term.
 #' 
 #' @return Object of class "BayesProj_spec_ts_damped_trend"
 #'
 #' @noRd
-new_BayesProj_spec_ts_dampedtrend <- function(scale_obs,
-                                              scale_level,
-                                              scale_trend,
+new_BayesProj_spec_ts_dampedtrend <- function(scale_sd_y,
+                                              scale_sd_level,
+                                              scale_sd_trend,
                                               damp_min,
                                               damp_max) {
-    ans <- list(scale_obs = scale_obs,
-                scale_level = scale_level,
-                scale_trend = scale_trend,
-                damp_min = damp_min,
-                damp_max = damp_max)
-    class(ans) <- c("BayesProj_spec_ts_dampedtrend", "BayesProj_spec_ts")
-    ans
+  ans <- list(scale_sd_y = scale_sd_y,
+              scale_sd_level = scale_sd_level,
+              scale_sd_trend = scale_sd_trend,
+              damp_min = damp_min,
+              damp_max = damp_max)
+  class(ans) <- c("BayesProj_spec_ts_dampedtrend", "BayesProj_spec_ts")
+  ans
 }
 

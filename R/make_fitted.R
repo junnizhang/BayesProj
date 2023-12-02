@@ -19,13 +19,11 @@
 #' @noRd
 make_fitted <- function(inputs, spec) {
   vals <- inputs[["val"]]
-  n_period <- length(val[[1L]][[1L]])
+  y1 <- val[[1L]][[1L]]
   class_spec <- make_class_spec(spec)
-  par <- make_par(spec = spec, n_period = n_period)
+  par <- make_par(spec = spec, y = y1)
   hyper <- make_hyper(spec)
-  parameters <- list(par = par,
-                     hyper = hyper)
-  random <- make_random(spec_ts)
+  parameters <- list(par = par, hyper = hyper)
   for (i_val in seq_along(vals)) {
     val <- vals[[i_val]]
     for (i_y in seq_along(val)) {
@@ -39,18 +37,16 @@ make_fitted <- function(inputs, spec) {
       f <- TMB::MakeADFun(data = data,
                           parameters = parameters,
                           DLL = "BayesProj",
-                          random = random,
                           silent = TRUE)
       stats::nlminb(start = f$par,
                     objective = f$fn,
-                    gradient = f$gr)
-      sdreport <- TMB::sdreport(f,
-                                bias.correct = TRUE,
-                                getJointPrecision = TRUE)
-      mean <- c(sdreport$par.fixed, sdreport$par.random)
-      prec <- sdreport$jointPrecision
+                    gradient = f$gr,
+                    hessian = f$hessian)
+      sdreport <- TMB::sdreport(f, getReportCovariance = TRUE)
+      mean <- sdreport$par.fixed
+      var <- sdreport$cov.fixed
       val[[i_y]] <- list(mean = mean,
-                         prec = prec)
+                         var = var)
     }
     vals[[i_val]] <- val
   }
