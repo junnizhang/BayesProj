@@ -24,9 +24,6 @@ Depends:
 Imports:
     checkmate,
     generics,
-    Matrix,
-    matrixStats,
-    splines,
     stats,
     tibble,
     TMB

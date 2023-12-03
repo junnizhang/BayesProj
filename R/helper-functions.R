@@ -1,6 +1,95 @@
 
 ## HAS_TESTS
+#' Draw from the Posterior Distribution for Parameters
+#' - for All Combinations of 'By' Variables
+#'
+#' @param x Object of class "BayeProj_fitted"
+#'
+#' @returns A names list of data frames.
+#'
+#' @noRd
+draw_post_fit <- function(x) {
+  data <- x$data
+  timevar <- x$timevar
+  spec <- x$spec_ts
+  fitted <- x$fitted
+  by <- x$by
+  labels_time <- x$labels_time
+  n_draw <- x$n_draw
+  draws <- lapply(fitted,
+                  draw_post_fit_by,
+                  spec = spec,
+                  n_draw = n_draw,
+                  timevar = timevar,
+                  labels_time = labels_time)
+  draws <- transpose_list(draws)
+  for (what in names(draws)) {
+    ans_what <- ans[[what]]
+    each <- nrow(ans_what[[1L]])
+    by_what <- rep_rows_df(by, each = each)
+    ans[["what"]] <- cbind(by_what, ans_what)
+  }
+  ans
+}
+
+
+## HAS_TESTS
+#' Draw from the Posterior Distribution for Parameters
+#' - for One Combination of 'By' Variables
+#'
+#' One combination of 'by' variables can have
+#' results from 1 or 'n_draw' fitted models.
+#'
+#' @param fitted_by List (of length 1 or 'n_draw') of lists
+#' each of which has elements 'mean' and 'prec'
+#' @param spec Object of class 'BayesProj_spec_ts'
+#' @param n_draw Number of draws from posterior
+#' @param timevar Name of time variable
+#' @param labels_time Vector of labels for historical periods,
+#' including periods with no data
+#'
+#' @returns A names list of data frames.
+#'
+#' @noRd
+draw_post_fit_by <- function(fitted_by, spec, n_draw, timevar, labels_time) {
+  n_fit <- length(fitted_by)
+  if (n_fit == 1L) {
+    mean <- fitted_by[[1L]]$mean
+    prec <- fitted_by[[1L]]$prec
+    draws <- draw_post_fit_one(spec = spec,
+                               mean = mean,
+                               prec = prec,
+                               n_draw = n_draw)
+  }
+  else if (n_fit == n_draw) {
+    mean <- lapply(fitted_by, function(x) x[["mean"]])
+    prec <- lapply(fitted_by, function(x) x[["prec"]])
+    draws <- .mapply(draw_post_fit_one,
+                     dots = list(mean = mean,
+                                 prec = prec),
+                     MoreArgs = list(spec = spec,
+                                     n_draw = 1L))
+    draws <- do.call(cbind, draws)
+  }
+  else
+    stop("Internal error: Unexpected number of draws.")
+  draws <- apply(draws, 1L, identity, simplify = FALSE)
+  labels <- make_labels_fit(spec = spec, labels_time = labels_time)
+  ans <- data.frame(labels = labels)
+  ans$draws <- draws
+  what <- make_what_fit(spec = spec, labels_time = labels_time)
+  ans <- split(ans, what)
+  vname <- make_vname_fit(spec = spec, timevar = timevar)
+  for (i in seq_along(ans))
+    names(ans[[i]])[[1L]] <- vname[[i]]
+  ans
+}
+
+
+## HAS_TESTS
 #' Convert Non-Factor Time Variable to Factor
+#'
+#' Fills in intermediate values.
 #'
 #' @param Data A data frame
 #' @param timevar Name of the time variable
@@ -11,10 +100,33 @@
 format_timevar <- function(data, timevar) {
   timevar_val <- data[[timevar]]
   if (!is.factor(timevar_val)) {
-    timevar_val <- factor(timevar_val)
+    levels <- seq.int(from = min(timevar_val, na.rm = TRUE),
+                      to = max(timevar_val, na.rm = TRUE))
+    timevar_val <- factor(timevar_val, levels = levels)
     data[[timevar]] <- timevar_val
   }
   data
+}
+
+
+## HAS_TESTS
+#' Inverse Logit Function
+#'
+#' Guards against overflow, and allows NA.
+#' 
+#' @param x Numeric vector
+#'
+#' @returns Numeric vector
+#'
+#' @noRd
+invlogit <- function(x) {
+  ans <- rep(NA_real_, times = length(x))
+  is_na <- is.na(x)
+  is_nonneg <- !is_na & (x >= 0)
+  is_neg <- !is_na & (x < 0)
+  ans[is_nonneg] <- 1 / (1 + exp(-x[is_nonneg]))
+  ans[is_neg] <- exp(x[is_neg]) / (1 + exp(x[is_neg]))
+  ans
 }
 
 
@@ -73,8 +185,6 @@ nest_data <- function(data, indvar, timevar, byvar) {
 #'
 #' @noRd
 prepare_inputs_fit <- function(data, indvar, timevar, byvar, log) {
-  data <- format_timevar(data = data,
-                         timevar = timevar)
   data <- nest_data(data = data,
                     indvar = indvar,
                     timevar = timevar,
@@ -85,6 +195,31 @@ prepare_inputs_fit <- function(data, indvar, timevar, byvar, log) {
   data <- take_log_ind(data = data,
                        log = log)
   data
+}
+
+
+## HAS_TESTS
+#' Draw from a multivariate normal distribution
+#'
+#' Code based partly on MASS::mvrnorm.
+#' 
+#' @param n Number of draws
+#' @param mean Mean of MVN distribution
+#' @param prec Precision of MVN distribution
+#'
+#' @returns Matrix with length(mean)
+#' rows and n columns.
+#'
+#' @noRd
+rmvn <- function(n, mean, prec) {
+    n_val <- length(mean)
+    ch <- chol(prec)
+    I <- diag(n_val)
+    sd <- backsolve(ch, I)
+    Z <- matrix(stats::rnorm(n = n_val * n),
+                nrow = n_val,
+                ncol = n)
+    t(mean + sd %*% Z)
 }
 
 

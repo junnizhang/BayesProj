@@ -18,7 +18,8 @@ Type objective_function<Type>::operator() ()
   DATA_STRING(class_spec);
   DATA_VECTOR(consts);
 
-  PARAMETER_VECTOR(par);
+  PARAMETER_VECTOR(level);
+  PARAMETER_VECTOR(trend);
   PARAMETER_VECTOR(hyper);
 
   // derived quantities -------------------------------------------------------
@@ -40,12 +41,10 @@ Type objective_function<Type>::operator() ()
     Type scale_sd_trend = consts[4];
     Type damp_min = consts[5];
     Type damp_max = consts[6];
-    vector<Type> level = par;
-    vector<Type> trend = hyper.segment(0, T);
-    Type log_sd_y = hyper[T];
-    Type log_sd_level = hyper[T + 1];
-    Type log_sd_trend = hyper[T + 2];
-    Type logit_damp = hyper[T + 3];
+    Type log_sd_y = hyper[0];
+    Type log_sd_level = hyper[1];
+    Type log_sd_trend = hyper[2];
+    Type logit_damp = hyper[3];
 
     // create new values
     

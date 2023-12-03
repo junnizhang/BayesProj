@@ -117,6 +117,7 @@ check_gt_zero <- function(x, nm) {
 }
 
 
+## NO_TESTS
 #' Check 'log' argument
 #'
 #' @param log TRUE or FALSE
@@ -129,7 +130,7 @@ check_log <- function(log) {
         stop(gettextf("'%s' does not have length 1",
                       "log"),
              call. = FALSE)
-    if (!identical(is.logical(log), 1L))
+    if (!is.logical(log))
         stop(gettextf("'%s' has class \"%s\"",
                       "log",
                       class(log)),

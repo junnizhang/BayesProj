@@ -1,10 +1,63 @@
 
+## 'draw_post_fit_by' ---------------------------------------------------------
+
+test_that("draw_post_fit_by' works with valid inputs - indvar is numeric ", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:20))
+  inputs <- prepare_inputs_fit(data = data,
+                               indvar = "y",
+                               timevar = "time",
+                               byvar = character(),
+                               log = FALSE)
+  spec <- DampedTrend()
+  fitted <- make_fitted(inputs = inputs, spec = spec)
+  ans <- draw_post_fit_by(fitted_by = fitted[[1]],
+                          spec = spec,
+                          n_draw = 10L,
+                          timevar = "time",
+                          labels_time = 1:5)
+  expect_setequal(names(ans), c("level", "trend", "hyper"))
+  expect_identical(names(ans$level)[[1L]], "time")
+  expect_identical(names(ans$trend)[[1L]], "time")
+  expect_identical(names(ans$hyper)[[1L]], "hyper")
+})
+
+test_that("draw_post_fit_by' works with valid inputs - indvar is list ", {
+  set.seed(0)
+  data <- data.frame(time = 1:5)
+  data$y <- replicate(n = 5, rnorm(10), simplify = FALSE)
+  inputs <- prepare_inputs_fit(data = data,
+                               indvar = "y",
+                               timevar = "time",
+                               byvar = character(),
+                               log = FALSE)
+  spec <- DampedTrend()
+  fitted <- make_fitted(inputs = inputs, spec = spec)
+  ans <- draw_post_fit_by(fitted_by = fitted[[1]],
+                          spec = spec,
+                          n_draw = 10L,
+                          timevar = "time",
+                          labels_time = 1:5)
+  expect_setequal(names(ans), c("level", "trend", "hyper"))
+  expect_identical(names(ans$level)[[1L]], "time")
+  expect_identical(names(ans$trend)[[1L]], "time")
+  expect_identical(names(ans$hyper)[[1L]], "hyper")
+})
+
+
 ## 'format_timevar' -----------------------------------------------------------
 
-test_that("'format_timevar' works when time variable is not factor", {
+test_that("'format_timevar' works when time variable is not factor - has all levels", {
   data <- data.frame(tm = 1:5)
   ans_obtained <- format_timevar(data = data, timevar = "tm")
   ans_expected <- data.frame(tm = factor(1:5))
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("'format_timevar' works when time variable is not factor", {
+  data <- data.frame(tm = c(1, 4:5))
+  ans_obtained <- format_timevar(data = data, timevar = "tm")
+  ans_expected <- data.frame(tm = factor(c(1, 4:5), levels = 1:5))
   expect_identical(ans_obtained, ans_expected)
 })
 
@@ -12,6 +65,16 @@ test_that("'format_timevar' works when time variable is a factor", {
   data <- data.frame(tm = factor(1:5, levels = 5:1))
   ans_obtained <- format_timevar(data = data, timevar = "tm")
   expect_identical(ans_obtained, data)
+})
+
+
+## 'invlogit' -----------------------------------------------------------------
+
+test_that("'invlogit' works with valid inputs", {
+  x <- c(0, -Inf, Inf, NA, 3, -3)
+  ans_obtained <- invlogit(x)
+  ans_expected <- c(0.5, 0, 1, NA, 1 / (1 + exp(-3)), exp(-3) / (1 + exp(-3)))
+  expect_identical(ans_obtained, ans_expected)
 })
 
 
@@ -99,6 +162,21 @@ test_that("prepare_inputs_fit' works with no 'by' variable, list indicator", {
   ans_expected$val <- list(list(log(c(101, 103)),
                                 log(c(102, 104))))
   expect_identical(ans_obtained, ans_expected)
+})
+
+
+## 'rmvn' ---------------------------------------------------------------------
+
+test_that("'rmvn' gives correct answer with valid inputs", {
+    set.seed(0)
+    mean <- rnorm(3)
+    prec <- matrix(runif(n = 9, max = 10), nr = 3)
+    prec <- t(prec) %*% prec
+    ans <- rmvn(n = 100000,
+                mean = mean,
+                prec = prec)
+    expect_equal(colMeans(ans), mean, tolerance = 0.01)
+    expect_equal(solve(cov(ans)), prec, tolerance = 0.01)
 })
 
 

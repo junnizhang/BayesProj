@@ -110,14 +110,6 @@ test_that("'check_data' throws correct error when indvar wrong class", {
 })
 
 
-
-
-
-
-
-
-
-
 ## 'check_gt_zero' ------------------------------------------------------------
 
 test_that("'check_gt_zero' returns TRUE with valid value", {
@@ -131,3 +123,33 @@ test_that("'check_gt_zero' returns TRUE with valid value", {
     expect_error(check_gt_zero(-3, nm = "y"),
                  "'y' is less than or equal to 0")
 })
+
+
+## 'check_log' ----------------------------------------------------------------
+
+test_that("'check_log' returns TRUE with valid value", {
+  expect_true(check_log(TRUE))
+  expect_true(check_log(FALSE))
+})
+
+test_that("'check_log' throws correct error when 'log' does not have length 1", {
+  expect_error(check_log(c(TRUE, FALSE)),
+               "'log' does not have length 1")
+  expect_error(check_log(logical()),
+               "'log' does not have length 1")
+})
+
+test_that("'check_log' throws correct error when 'log' not logical", {
+  expect_error(check_log("F"),
+               "'log' has class \"character\"")
+})
+
+test_that("'check_log' throws correct error when 'log' is NA", {
+  expect_error(check_log(NA),
+               "'log' is NA")
+})
+
+
+  
+                         
+

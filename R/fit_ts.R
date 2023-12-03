@@ -85,6 +85,8 @@ fit_ts <- function(data,
 	 call. = FALSE)
   check_log(log)
   ## prepare inputs
+  data <- format_timevar(data = data,
+                         timevar = timevar)
   inputs <- prepare_inputs_fit(data = data,
 			       indvar = indvar,
 			       timevar = timevar,
@@ -95,14 +97,16 @@ fit_ts <- function(data,
 			spec_ts = spec_ts)
   ## assemble results
   by <- inputs[byvar]
-  new_BayesProj_fit(data = data,
-		    indvar = indvar,
-		    timevar = timevar,
-		    byvar = byvar,
-		    spec_ts = spec_ts,
-		    fitted = fitted,
-		    by = by,
-                    log = log)
+  labels_time <- levels(data[[timevar]])
+  new_BayesProj_fitted(data = data,
+                       indvar = indvar,
+                       timevar = timevar,
+                       byvar = byvar,
+                       spec_ts = spec_ts,
+                       fitted = fitted,
+                       by = by,
+                       labels_time = labels_time,
+                       log = log)
 }
 
 

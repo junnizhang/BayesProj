@@ -1,4 +1,5 @@
 
+## HAS_TESTS
 #' Fit Time Series Model
 #'
 #' The function that does the actual
@@ -8,7 +9,7 @@
 #' the the indicator (`val`) as a list
 #' of lists, and the 'by' variable(s)
 #' if any.
-#' @param spec. Specification of the
+#' @param spec_ts. Specification of the
 #' time series model. An object of
 #' class `"BayesProj_spec_ts"`.
 #'
@@ -17,18 +18,17 @@
 #' and `prec`.
 #' 
 #' @noRd
-make_fitted <- function(inputs, spec) {
+make_fitted <- function(inputs, spec_ts) {
   vals <- inputs[["val"]]
-  y1 <- val[[1L]][[1L]]
-  class_spec <- make_class_spec(spec)
-  par <- make_par(spec = spec, y = y1)
-  hyper <- make_hyper(spec)
-  parameters <- list(par = par, hyper = hyper)
+  y1 <- vals[[1L]][[1L]]
+  class_spec <- make_class_spec(spec_ts)
+  parameters <- make_parameters(spec = spec_ts, y = y1)
+  random <- make_random(spec_ts)
   for (i_val in seq_along(vals)) {
     val <- vals[[i_val]]
     for (i_y in seq_along(val)) {
       y <- val[[i_y]]
-      consts <- make_consts(spec = spec, y = y)
+      consts <- make_consts(spec = spec_ts, y = y)
       is_in_lik <- as.integer(!is.na(y))
       data <- list(y = y,
                    is_in_lik = is_in_lik,
@@ -36,17 +36,21 @@ make_fitted <- function(inputs, spec) {
                    consts = consts)
       f <- TMB::MakeADFun(data = data,
                           parameters = parameters,
+                          random = random,
                           DLL = "BayesProj",
                           silent = TRUE)
       stats::nlminb(start = f$par,
                     objective = f$fn,
                     gradient = f$gr,
-                    hessian = f$hessian)
-      sdreport <- TMB::sdreport(f, getReportCovariance = TRUE)
-      mean <- sdreport$par.fixed
-      var <- sdreport$cov.fixed
+                    silent = TRUE)
+      sdreport <- TMB::sdreport(f,
+                                bias.correct = TRUE,
+                                getJointPrecision = TRUE)
+      mean <- as.list(sdreport, what = "Est")
+      attr(mean, "what") <- NULL
+      prec <- sdreport$jointPrecision
       val[[i_y]] <- list(mean = mean,
-                         var = var)
+                         prec = prec)
     }
     vals[[i_val]] <- val
   }
