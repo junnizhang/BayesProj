@@ -16,18 +16,22 @@ draw_post_fit <- function(x) {
   by <- x$by
   labels_time <- x$labels_time
   n_draw <- x$n_draw
-  draws <- lapply(fitted,
-                  draw_post_fit_by,
-                  spec = spec,
-                  n_draw = n_draw,
-                  timevar = timevar,
-                  labels_time = labels_time)
-  draws <- transpose_list(draws)
-  for (what in names(draws)) {
-    ans_what <- ans[[what]]
-    each <- nrow(ans_what[[1L]])
-    by_what <- rep_rows_df(by, each = each)
-    ans[["what"]] <- cbind(by_what, ans_what)
+  ans <- lapply(fitted,
+                draw_post_fit_by,
+                spec = spec,
+                n_draw = n_draw,
+                timevar = timevar,
+                labels_time = labels_time)
+  nrows <- vapply(ans[[1L]], nrow, 1L)
+  rbind_list_elements <- function(x, y)
+    .mapply(rbind, dots = list(x, y), MoreArgs = list())
+  ans <- Reduce(rbind_list_elements, ans)
+  names(ans) <- names(nrows)
+  if (ncol(by) > 0L) {
+    for (i in seq_along(ans)) {
+      by_rep <- vctrs::vec_rep_each(by, times = nrows[[i]])
+      ans[[i]] <- cbind(by_rep, ans[[i]])
+    }
   }
   ans
 }
@@ -76,7 +80,7 @@ draw_post_fit_by <- function(fitted_by, spec, n_draw, timevar, labels_time) {
   draws <- apply(draws, 1L, identity, simplify = FALSE)
   labels <- make_labels_fit(spec = spec, labels_time = labels_time)
   ans <- data.frame(labels = labels)
-  ans$draws <- draws
+  ans$.probability <- draws
   what <- make_what_fit(spec = spec, labels_time = labels_time)
   ans <- split(ans, what)
   vname <- make_vname_fit(spec = spec, timevar = timevar)
@@ -127,6 +131,55 @@ invlogit <- function(x) {
   ans[is_nonneg] <- 1 / (1 + exp(-x[is_nonneg]))
   ans[is_neg] <- exp(x[is_neg]) / (1 + exp(x[is_neg]))
   ans
+}
+
+
+## HAS_TESTS
+#' Create Credible Intervals from List Column with Draws
+#'
+#' Modify a data frame so it uses ".probability"
+#' columns to create ".fitted", and ".lower", ".upper"
+#' columns.
+#'
+#' Uses matrixStats::colQuantiles for speed.
+#'
+#' @param x A data frame
+#' @param interval With of credible intervals
+#'
+#' @returns A data frame
+#'
+#' @noRd
+make_credible_intervals <- function(x, interval) {
+  probs <- make_probs(interval)
+  i_prob <- match(".probability", names(x), nomatch = 0L)
+  if (i_prob == 0L)
+    stop("internal error: no variable called '.probability'")
+  m <- matrix(unlist(x[[i_prob]]),
+              nrow = nrow(x),
+              byrow = TRUE)
+  q <- matrixStats::rowQuantiles(m, probs = probs)
+  vals <- data.frame(.fitted = q[, 2L],
+                     .lower = q[, 1L],
+                     .upper = q[, 3L])
+  ans <- append(x, vals, after = i_prob - 1L)
+  ans <- tibble::as_tibble(ans)
+  ans
+}
+ 
+
+## HAS_TESTS
+#' Given a Credible Interval Width,
+#' Make a 'probs' Argument
+#'
+#' @param interval A number between 0 and 1.
+#'
+#' @returns A numeric vector of length 3.
+#'
+#' @noRd
+make_probs <- function(interval) {
+    checkmate::assert_number(interval, lower = 0, upper = 1)
+    alpha <- 1 - interval
+    c(0.5 * alpha, 0.5, 1 - 0.5 * alpha)
 }
 
 

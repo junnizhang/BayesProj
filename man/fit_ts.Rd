@@ -73,6 +73,17 @@ is close to zero and has more room to move
 up than down.
 }
 
+\examples{
+
+library(tibble)
+data <- tribble(~time, ~val,
+                2015,  4.3,
+                2016,  4.1,
+                2020,  3.5,
+                2022,  3.6)
+fit <- fit_ts(data, indvar = "val")
+fit
+}
 \seealso{
 \itemize{
 \item \code{\link[=DampedTrend]{DampedTrend()}} to specify a "damped linear trend"

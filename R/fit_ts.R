@@ -60,6 +60,16 @@
 #'   values of the indicator
 #'   from the fitted model, combined with the original data.
 #'
+#' @examples
+#'
+#' library(tibble)
+#' data <- tribble(~time, ~val,
+#'                 2015,  4.3,
+#'                 2016,  4.1,
+#'                 2020,  3.5,
+#'                 2022,  3.6)
+#' fit <- fit_ts(data, indvar = "val")
+#' fit
 #' @export
 fit_ts <- function(data,
                    indvar,

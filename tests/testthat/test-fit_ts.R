@@ -22,4 +22,3 @@ test_that("'fit_ts' works when indicator is list", {
   expect_false(ans$log)
   expect_identical(ans$n_draw, 10L)
 })
-

@@ -24,9 +24,11 @@ Depends:
 Imports:
     checkmate,
     generics,
+    matrixStats,
     stats,
     tibble,
-    TMB
+    TMB,
+    vctrs
 Suggests: 
     covr,
     dplyr,

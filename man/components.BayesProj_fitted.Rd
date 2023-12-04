@@ -2,12 +2,12 @@
 % Please edit documentation in R/fitted-methods.R
 \name{components.BayesProj_fitted}
 \alias{components.BayesProj_fitted}
-\title{Extract Components from a Model Object}
+\title{Extract Components from a Fitted Time Series Model}
 \usage{
 \method{components}{BayesProj_fitted}(object, what = NULL, interval = 0.95, ...)
 }
 \arguments{
-\item{object}{A results object.}
+\item{object}{Results from a call to \code{\link[=fit_ts]{fit_ts()}}.}
 
 \item{what}{Components to be extracted.
 If no value supplied, all available components
@@ -32,5 +32,24 @@ from the posterior distribution.
 }
 }
 \description{
-Extract Components from a Model Object
+Extract Components from a Fitted Time Series Model
+}
+\examples{
+library(tibble)
+data <- tribble(~time, ~val,
+                2015,  4.3,
+                2016,  4.1,
+                2020,  3.5,
+                2022,  3.6)
+fit <- fit_ts(data, indvar = "val")
+components(fit)
+}
+\seealso{
+\itemize{
+\item \code{\link[=fit_ts]{fit_ts()}} to fit a time series model
+\item \code{\link[=augment.BayesProj_fitted]{augment()}}
+combines data and estimates.
+\item \code{\link[=n_draw<-]{n_draw()}} sets the default number
+of draws from the posterior distribution.
+}
 }
