@@ -96,7 +96,160 @@ check_data <- function(data,
     ## all ok
     invisible(TRUE)
 }
-                                
+
+
+## NO_TESTS
+#' Check 'data' Argument for 'Benchmarks'
+#'
+#' @param data A data frame
+#'
+#' @returns TRUE, invisibly.
+#'
+#' @noRd
+check_data_benchmarks <- function(data) {
+  ## is data frame with at least 1 row, at least 3 columns,
+  ## and no missing values
+  checkmate::check_data_frame(data,
+                              min.rows = 1L,
+                              min.cols = 3L,
+                              any.missing = FALSE)
+  nms_data <- names(data)
+  ## check quantile variables
+  for (vname in c("q50", "q90")) {
+    if (!(vname %in% nms_data))
+      stop(gettextf("'%s' does not have a variable called \"%s\"",
+                    "data",
+                    vname),
+           call. = FALSE)
+    val <- data[[vname]]
+    if (!is.numeric(val))
+      stop(gettextf("'%s' variable has class \"%s\"",
+                    vname,
+                    class(val)),
+           call. = FALSE)
+  }
+  q50 <- data[["q50"]]
+  q90 <- data[["q90"]]
+  is_le <- q90 <= q50
+  i_le <- match(TRUE, is_le, nomatch = 0L)
+  if (i_le > 0L)
+    stop(gettextf("element %d of '%s' [%s] is less than or equal to element %d of '%s' [%s]",
+                  i_le,
+                  "q90",
+                  q90[[i_le]],
+                  i_le,
+                  "q50",
+                  q50[[i_le]]),
+         call. = FALSE)
+  ## check no duplicate rows
+  nms_nonq <- setdiff(nms_data, c("q50", "q90"))
+  nonq <- data[nms_nonq]
+  is_dup <- duplicated(nonq)
+  i_dup <- match(TRUE, is_dup, nomatch = 0L)
+  if (i_dup > 0L) {
+    str_dup <- sprintf("    %s: %s",
+                       nms_nonq,
+                       unlist(nonq[i_dup, ]))
+    str_dup <- paste(str_dup, collapse = "\n")
+    stop(gettextf(paste0("'%s' has duplicate values:\n",
+                         "%s"),
+                  "data",
+                  str_dup),
+         call. = FALSE)
+  }
+  ## all OK
+  invisible(TRUE)
+}
+  
+
+
+## HAS_TESTS
+#' Check that 'fitted' has Class 'BayesProj_fitted'
+#'
+#' @param fitted
+#'
+#' @returns TRUE, invisibly
+#'
+#' @noRd
+check_is_fitted <- function(fitted) {
+    if (!inherits(fitted, "BayesProj_fitted"))
+    stop(gettextf("'%s' has class \"%s\"",
+                  "fitted",
+                  class(fitted)),
+         call. = FALSE)
+    invisible(TRUE)
+}
+
+
+#' Check that 'fitted' and 'spec_bench' are Consistent with Each Other
+#'
+#' @param fitted Object of class `"BayesProj_fitted"
+#' @param spec_bench Object of class `"BayesProj_spec_bench"`
+#'
+#' @returns TRUE, invisibly
+#'
+#' @noRd
+check_fitted_spec_bench_compatible <- function(fitted, spec_bench) {
+  timevar <- fitted$timevar
+  byvar <- fitted$byvar
+  by <- fitted$by
+  log <- fitted$log
+  data_bench <- spec_bench$data
+  nms_bench <- names(data_bench)
+  ## 'spec_bench' has 'timevar'
+  if (!(timevar %in% nms_bench))
+    stop(gettextf("time variable from '%s' ['%s'] not found in '%s'",
+                  "fitted",
+                  timevar,
+                  "spec_bench"),
+         call. = FALSE)
+  ## 'by' variables from 'spec_bench' are a subset of those from 'fitted'
+  nms_bench_q <- c(timevar, "q50", "q90")
+  nms_bench_by <- setdiff(nms_bench, nms_bench_q)
+  is_in_byvar <- nms_bench_by %in% byvar
+  i_not_in_byvar <- match(FALSE, is_in_byvar, nomatch = 0L)
+  if (i_not_in_byvar > 0L)
+    stop(gettextf("variable '%s' in '%s' but '%s' does not",
+                  "spec_bench",
+                  nms_bench_by[[i_not_in_byvar]],
+                  "fitted"),
+         call. = FALSE)
+  ## 'spec_bench' has a value for every combination in 'by'
+  id_bench <- data_bench[nms_bench_by]
+  id_fitted <- by[nms_bench_by]
+  id_bench <- do.call(paste0, id_bench)
+  id_fitted <- do.call(paste0, id_fitted)
+  is_in_bench <- id_fitted %in% id_bench
+  i_not_in_bench <- match(FALSE, is_in_bench, nomatch = 0L)
+  if (i_not_in_bench > 0L) {
+    str_not_in_bench <- sprintf("    %s: %s",
+                                nms_bench_by,
+                                unlist(ans[i_not_in_bench, ]))
+    str_not_in_bench <- paste(str_not_in_bench, collapse = "\n")
+    stop(gettextf(paste0("combination of 'by' variables found in '%s' but not in '%s':\n",
+                         "%s"),
+                  "fitted",
+                  "spec_bench",
+                  str_not_in_bench),
+         call. = FALSE)
+  }
+  ## quantiles all positive if 'log' is true
+  if (log) {
+    q50 <- bench_data[["q50"]]
+    is_pos <- q50 > 0
+    i_nonpos <- match(FALSE, is_pos, nomatch = 0L)
+    if (i_nonpos > 0L)
+      stop(gettextf("'%s' is TRUE, but '%s' in '%s' has value [%s] less than or equal to 0",
+                    "log",
+                    "q50",
+                    "spec_bench",
+                    q50[[i_nonpos]]),
+           call. = FALSE)
+  }
+  ## all tests passed
+  invisible(TRUE)
+}
+
 
 ## HAS_TESTS
 #' Check that a scalar is greater than 0
@@ -139,5 +292,23 @@ check_log <- function(log) {
         stop(gettextf("'%s' is NA",
                       "log"),
              call. = FALSE)
+    invisible(TRUE)
+}
+
+
+## HAS_TESTS
+#' Check that 'spec_bench' has Class 'BayesProj_spec_bench'
+#'
+#' @param spec_bench
+#'
+#' @returns TRUE, invisibly
+#'
+#' @noRd
+check_is_spec_bench <- function(spec_bench) {
+    if (!inherits(spec_bench, "BayesProj_spec_bench"))
+    stop(gettextf("'%s' has class \"%s\"",
+                  "spec_bench",
+                  class(spec_bench)),
+         call. = FALSE)
     invisible(TRUE)
 }

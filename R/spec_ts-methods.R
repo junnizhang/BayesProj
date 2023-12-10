@@ -182,6 +182,62 @@ make_level.BayesProj_spec_ts <- function(spec, y) {
 }
 
 
+## 'make_mean_proj' -----------------------------------------------------------
+
+#' Mean Vector for Benchmarked Projections
+#'
+#' Make the precision matrix to use for drawing from
+#' the posterior distribution for benchmarked projections.
+#' Unbenchmarked projections are a special case where
+#' all elements of `sd_bench` are equal to `Inf`.
+#'
+#' @param spec Object of class `"BayeProj_spec_ts"`.
+#' @param par_final Estimated values for final
+#' historical period. Contents depend on class of `spec`.
+#' @param hyper Numeric vector with hyper-parameters.
+#' Contents depend on class of `spec`.
+#' @param mean_bench Numeric vector with one mean value
+#' for each period in the projection.
+#' @param sd_bench Numeric vector with one standard deviation
+#' for each period in the projection.
+#'
+#' @returns Numeric vector with length equal to 
+#' three times the number of projected periods.
+#'
+#' @noRd
+make_mean_proj <- function(spec, par_final, hyper, sd_bench) {
+  UseMethod("make_mean_proj")
+}
+
+#' @export
+make_mean_proj.BayesProj_spec_ts_dampedtrend <- function(spec,
+                                                            par_final,
+                                                            hyper,
+                                                            mean_bench,
+                                                            sd_bench) {
+  ## extract and transform parameter estimates
+  level_final <- par_final[[1L]]
+  trend_final <- par_final[[2L]]
+  sd_y <- hyper[[1L]]
+  sd_level <- hyper[[2L]]
+  sd_trend <- hyper[[3L]]
+  damp <- hyper[[4L]]
+  n <- length(mean_bench)
+  prec_y <- 1 / sd_y^2            
+  prec_level <- 1 / sd_level^2    
+  prec_trend <- 1 / sd_trend^2    
+  prec_bench <- 1 / sd_bench^2 ## vector
+  ## make vectors
+  v_y <- mean_bench / prec_bench
+  v_level <- c(damp * trend_final * prec_trend - level_final * prec_level,
+               rep.int(0, times = n - 1L))
+  v_trend <- c(level_final * prec_level,
+               rep.int(0, times = n - 1L))
+  ## combine and return
+  c(v_level, v_trend, v_y)
+}
+
+
 ## 'make_parameters' ----------------------------------------------------------
 
 #' Derive Values for 'parameters' Argument used with TMB
@@ -206,6 +262,63 @@ make_parameters.BayesProj_spec_ts <- function(spec, y) {
   list(level = level,
        trend = trend,
        hyper = hyper)
+}
+
+
+## 'make_prec_proj' -----------------------------------------------------
+
+## NO_TESTS
+#' Precision Matrix for Benchmarked Projections
+#'
+#' Make the precision matrix for a draw from the
+#' posterior distribution for benchmarked projections.
+#' Unbenchmarked projections are a special case where
+#' all elements of `sd_bench` are equal to `Inf`.
+#'
+#' @param spec Object of class `"BayeProj_spec_ts"`.
+#' @param hyper Numeric vector with one draw from the
+#' posterior distribution for the hyper-parameters.
+#' Contents depend on class of `spec`.
+#' @param sd_bench Numeric vector with one
+#' standard deviation for each period
+#' in the projection.
+#'
+#' @returns Sparse square matrix with number of rows
+#' equal to three times the number of projected periods.
+#'
+#' @noRd
+make_prec_proj <- function(spec, hyper, sd_bench) {
+  UseMethod("make_prec_proj")
+}
+
+#' @export
+make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) {
+  ## extract and transform parameter estimates
+  sd_y <- hyper[[1L]]
+  sd_level <- hyper[[2L]]
+  sd_trend <- hyper[[3L]]
+  damp <- hyper[[4L]]
+  n <- length(sd_bench)
+  prec_y <- 1 / sd_y^2            
+  prec_level <- 1 / sd_level^2    
+  prec_trend <- 1 / sd_trend^2    
+  prec_bench <- 1 / sd_bench^2 ## vector
+  ## make submatrices
+  m_y_trend <- matrix(0, nrow = n, ncol = n)
+  is_offdiag <- abs(row(m_y_trend) - col(m_y_trend)) == 1L
+  m_y_y <- diag(prec_y + prec_bench)
+  m_level_level <- diag(c(rep(2 * prec_level + prec_y, times = n - 1L),
+                          prec_level + prec_y))
+  m_level_level[is_offdiag] <- -1 * prec_level
+  m_trend_trend <- diag(c(rep(prec_trend * (1 + damp^2) + prec_level, times = n - 1L),
+                          prec_trend + prec_level))
+  m_trend_trend[is_offdiag] <- -1 * prec_trend * damp
+  m_y_level <- diag(rep(-1 * prec_level, times = n))
+  m_level_trend <- diag(rep(-1 * prec_level, times = n))
+  ## combine
+  rbind(cbind(m_y_y,     m_y_level,     m_y_trend),
+        cbind(m_y_level, m_level_level, m_level_trend),
+        cbind(m_y_trend, m_level_trend, m_trend_trend))
 }
 
 

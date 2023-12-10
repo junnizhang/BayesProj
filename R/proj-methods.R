@@ -1,40 +1,37 @@
 
 ## 'augment' ------------------------------------------------------------------
 
-#' @importFrom generics augment
-#' @export
-generics::augment
-
-## HAS_TESTS
-#' Smoothed Estimates of Indicator, Combined with Original Data
+#' Forecasts of Indicator, Combined with Benchmarks
 #'
-#' Given the output from a call to [fit_ts()],
-#' extract smoothed values for the demographic indicator,
-#' merged with the original data.
+#' Given output from a call to [project_ts()],
+#' extract forecasts for the demographic indicator,
+#' merged with the benchmarks (if used).
 #'
-#' If `log` is `FALSE` in the original call to
-#' [fit_ts()] (which is the default), then the
-#' smoothed values are derived from the `level`
-#' parameter. If `log` is `TRUE`, then the
-#' smoothed values are derived from `exp(level)`.
-#' 
-#' @param x Results from a call to [fit_ts()].
+#' @param x Results from a call to [project_ts()].
 #' @param interval Width of credible intervals.
 #' A number between 0 and 1. Default is `0.95`.
 #' @param ... Not currently used.
 #'
 #' @returns A [tibble][tibble::tibble-package],
-#' constructed by adding four new columns to `data`:
+#' containing the 'by' variables from the historical estimates,
+#' the time variable, and the following variables:
 #' - `.fitted`: Point estimates (posterior medians) of rates.
 #' - `.lower`, `.upper`: Lower and upper bounds of
 #' credible intervals specified by `interval`.
 #' - `.probability`: A list column with all draws
 #' from the posterior distribution.
 #'
+#' If a value for `spec_bench` was provided in the call
+#' to [project_ts()], then information on the benchmarks
+#' is also included.
+#'
 #' @seealso
-#' - [fit_ts()] to fit a time series model.
-#' - \code{\link[=components.BayesProj_fitted]{components()}}
-#'   extracts parameter and hyper-parameter estimates.
+#' - [fit_ts()] to fit a time series model to historical data.
+#' - [project_ts()] to forecast a time series model.
+#' - [Benchmarks()] to specify "benchmarks" (expert judgements
+#'   about plausible future values) for a forcast.
+#' - \code{\link[=components.BayesProj_proj]{components()}}
+#'   extracts forecasts for parameters and hyper-parameter.
 #' - \code{\link[=n_draw<-]{n_draw()}} sets the default number
 #' of draws from the posterior distribution.
 #'
@@ -45,41 +42,41 @@ generics::augment
 #'                 2016,  4.1,
 #'                 2020,  3.5,
 #'                 2022,  3.6)
-#' fit <- fit_ts(data, indvar = "val")
-#' augment(fit)
+#' fitted <- fit_ts(data, indvar = "val")
+#' bench <- tribble(~time, ~q50, ~q90,
+#'                  2030,  1.8,  2.3)
+#' projected <- project(fitted = fitted,
+#'                      time_labels = 2023:2030,
+#'                      spec_bench = bench)
+#' augment(projected)
 #' @export
-augment.BayesProj_fitted <- function(x,
-                                     interval = 0.95,
-                                     ...) {
+augment.BayesProj_proj <- function(x,
+                                   interval = 0.95,
+                                   ...) {
   data <- x$data
   byvar <- x$byvar
   timevar <- x$timevar
   log <- x$log
-  modelled <- components(object = x,
-                         what = "level",
-                         interval = interval)
+  forecasted <- components(object = x,
+                           what = "level",
+                           interval = interval)
   if (log) {
     for (nm in c(".fitted", ".lower", ".upper"))
-      modelled[[nm]] <- exp(modelled[[nm]])
-    modelled[[".probability"]] <- lapply(modelled[[".probability"]], exp)
+      forecasted[[nm]] <- exp(forecasted[[nm]])
+    forecasted[[".probability"]] <- lapply(forecasted[[".probability"]], exp)
   }
-  by <- intersect(names(data), c(timevar, byvar)) ## keeps original order
-  ans <- merge(data, modelled, all.x = TRUE, by = by, sort = FALSE)
-  ans <- tibble::tibble(ans)
+  ## by <- intersect(names(data), c(timevar, byvar)) ## keeps original order
+  ## ans <- merge(data, modelled, all.x = TRUE, by = by, sort = FALSE)
+  ## ans <- tibble::tibble(ans)
   ans
 }
 
 
 ## 'components' ---------------------------------------------------------------
 
-#' @importFrom generics components
-#' @export
-generics::components
-
-## HAS_TESTS
-#' Components from a Fitted Time Series Model
+#' Components from a Forecasted Time Series Model
 #'
-#' @param object Results from a call to [fit_ts()].
+#' @param object Results from a call to [project_ts()].
 #' @param what Components to be extracted.
 #' If no value supplied, all available components
 #' are extracted.
@@ -99,7 +96,7 @@ generics::components
 #' from the posterior distribution.
 #'
 #' @seealso
-#' - [fit_ts()] to fit a time series model
+#' - [project_ts()] to project a time series model
 #' - \code{\link[=augment.BayesProj_fitted]{augment()}}
 #' combines data and estimates.
 #' - \code{\link[=n_draw<-]{n_draw()}} sets the default number
@@ -112,14 +109,19 @@ generics::components
 #'                 2016,  4.1,
 #'                 2020,  3.5,
 #'                 2022,  3.6)
-#' fit <- fit_ts(data, indvar = "val")
-#' components(fit)
+#' fitted <- fit_ts(data, indvar = "val")
+#' bench <- tribble(~time, ~q50, ~q90,
+#'                  2030,  1.8,  2.3)
+#' projected <- project(fitted = fitted,
+#'                      time_labels = 2023:2030,
+#'                      spec_bench = bench)
+#' components(projected)
 #' @export
-components.BayesProj_fitted <- function(object,
-                                        what = NULL,
-                                        interval = 0.95,
-                                        ...) {
-  draws_post <- draw_post_fit(object)
+components.BayesProj_proj <- function(object,
+                                      what = NULL,
+                                      interval = 0.95,
+                                      ...) {
+  draws_post <- draw_post_proj(object)
   if (!is.null(what)) {
     nms <- names(draws_post)
     if (!all(what %in% nms)) {
@@ -177,9 +179,9 @@ components.BayesProj_fitted <- function(object,
   UseMethod("n_draw<-")
 }
 
-## HAS_TESTS
+## NO_TESTS
 #' @export
-`n_draw<-.BayesProj_fitted` <- function(x, value) {
+`n_draw<-.BayesProj_proj` <- function(x, value) {
   value <- checkmate::assert_count(value,
                                    positive = TRUE,
                                    coerce = TRUE)
@@ -191,27 +193,27 @@ components.BayesProj_fitted <- function(object,
 
 ## 'print' --------------------------------------------------------------------
 
-#' @export
-print.BayesProj_fitted <- function(x, ...) {
-  ## extract info
-  spec_ts <- x$spec_ts
-  timevar <- x$timevar
-  byvar <- x$byvar
-  n_draw <- x$n_draw
-  has_byvar <- length(byvar) > 0L
-  ## make strings
-  str_title <- sprintf("--- Object of class \"%s\" ---\n",
-                       class(x)[[1L]])
-  str_timevar <- sprintf("  timevar: %s\n", timevar)
-  val_byvar <- if (has_byvar) paste(byvar, collapse = ", ") else "<none>"
-  str_byvar <- sprintf("    byvar: %s\n", val_byvar)
-  str_n_draw <- sprintf("   n_draw: %s\n", n_draw)
-  ## print
-  cat(str_title)
-  cat("\n")
-  cat(str_timevar)
-  cat(str_byvar)
-  cat(str_n_draw)
-  ## return
-  invisible(x)
-}
+## #' @export
+## print.BayesProj_proj <- function(x, ...) {
+##   ## extract info
+##   spec_ts <- x$spec_ts
+##   timevar <- x$timevar
+##   byvar <- x$byvar
+##   n_draw <- x$n_draw
+##   has_byvar <- length(byvar) > 0L
+##   ## make strings
+##   str_title <- sprintf("--- Object of class \"%s\" ---\n",
+##                        class(x)[[1L]])
+##   str_timevar <- sprintf("  timevar: %s\n", timevar)
+##   val_byvar <- if (has_byvar) paste(byvar, collapse = ", ") else "<none>"
+##   str_byvar <- sprintf("    byvar: %s\n", val_byvar)
+##   str_n_draw <- sprintf("   n_draw: %s\n", n_draw)
+##   ## print
+##   cat(str_title)
+##   cat("\n")
+##   cat(str_timevar)
+##   cat(str_byvar)
+##   cat(str_n_draw)
+##   ## return
+##   invisible(x)
+## }

@@ -1,12 +1,8 @@
 
 #' Fit a Time Series Model
 #'
-#' Use historical data to obtain estimates
-#' for the parameters in a time series model.
-#' Typically used to format a
-#' demographic indicator, such as the
-#' total fertility rate.
-#'
+#' Fit a time series model to a demographic
+#' indicator, such as the total fertility rate.
 #'
 #' @section Format of indicator:
 #'
@@ -21,7 +17,7 @@
 #' @section 'by' variable:
 #'
 #' `model_ts()` has an optional `byvar` argument,
-#' specifying variables in `data`. If
+#' specifying 'by' variables in `data`. If
 #' a value for `byvar` is supplied, then
 #' separate models are fitted for each combination
 #' of the 'by' variables.
@@ -61,7 +57,6 @@
 #'   from the fitted model, combined with the original data.
 #'
 #' @examples
-#'
 #' library(tibble)
 #' data <- tribble(~time, ~val,
 #'                 2015,  4.3,
@@ -106,7 +101,7 @@ fit_ts <- function(data,
   fitted <- make_fitted(inputs = inputs,
 			spec_ts = spec_ts)
   ## assemble results
-  by <- inputs[byvar]
+  by <- inputs[["key"]]
   labels_time <- levels(data[[timevar]])
   new_BayesProj_fitted(data = data,
                        indvar = indvar,

@@ -1,0 +1,27 @@
+
+new_BayesProj_proj <- function(data,
+                               indvar,
+                               timevar,
+                               byvar,
+                               spec_ts,
+                               fitted,
+                               by,
+                               labels_time_fit,
+                               log,
+                               labels_time_project,
+                               mean_bench,
+                               sd_bench) {
+  new("BayesProj_proj",
+      data = data,
+      indvar = indvar,
+      timevar = timevar,
+      byvar = byvar,
+      spec_ts = spec_ts,
+      fitted = fitted,
+      by = by,
+      labels_time_fit = labels_time_fit,
+      log = log,
+      labels_time_project = labels_time_project,
+      mean_bench = mean_bench,
+      sd_bench = sd_bench)      
+}

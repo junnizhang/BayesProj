@@ -110,6 +110,45 @@ test_that("'check_data' throws correct error when indvar wrong class", {
 })
 
 
+## 'check_fitted_spec_bench_compatible' ---------------------------------------
+
+test_that("'check_fitted_spec_becnh_compatible' returns TRUE with valid inputs - no 'by'", {
+  data <- data.frame(time = 2020,
+                     val = 3)
+  fitted <- fit_ts(data, indvar = "val")
+  spec_bench <- Benchmarks(data.frame(time = 2025, q50 = 2, q90 = 3))
+  expect_true(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                 spec_bench = spec_bench))
+})
+
+test_that("'check_fitted_spec_bench_compatible' returns TRUE with valid inputs - has 'by'", {
+  data <- data.frame(time = rep(1:3, times = 2),
+                     sex = rep(c("F", "M"), each = 3),
+                     value = 1:6)
+  fitted <- fit_ts(data, indvar = "value", byvar = "sex")
+  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 2, q90 = 3))
+  expect_true(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                 spec_bench = spec_bench))
+})
+
+  
+
+
+## 'check_is_fitted' ----------------------------------------------------------
+
+test_that("'check_is_fitted' returns TRUE with valid input", {
+  data <- data.frame(time = 2020,
+                     val = 3)
+  fitted <- fit_ts(data, indvar = "val")
+  expect_true(check_is_fitted(fitted))
+})
+
+test_that("'check_is_fitted' throws correct error with invalid input", {
+  expect_error(check_is_fitted(NULL),
+               "'fitted' has class \"NULL\"")
+})
+
+
 ## 'check_gt_zero' ------------------------------------------------------------
 
 test_that("'check_gt_zero' returns TRUE with valid value", {
@@ -150,6 +189,16 @@ test_that("'check_log' throws correct error when 'log' is NA", {
 })
 
 
-  
-                         
+## 'check_is_spec_bench' ------------------------------------------------------
 
+test_that("'check_is_spec_bench' returns TRUE with valid input", {
+  bench <- Benchmarks(data.frame(time = 2020,
+                                 q50 = 3,
+                                 q90 = 5))
+  expect_true(check_is_spec_bench(bench))
+})
+
+test_that("'check_is_spec_bench' throws correct error with invalid input", {
+  expect_error(check_is_spec_bench(NULL),
+               "'spec_bench' has class \"NULL\"")
+})
