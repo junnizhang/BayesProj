@@ -126,12 +126,54 @@ test_that("'check_fitted_spec_bench_compatible' returns TRUE with valid inputs -
                      sex = rep(c("F", "M"), each = 3),
                      value = 1:6)
   fitted <- fit_ts(data, indvar = "value", byvar = "sex")
-  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 2, q90 = 3))
+  spec_bench <- Benchmarks(data.frame(time = c(10, 10), q50 = 2:1, q90 = 3:2, sex = c("F", "M")))
   expect_true(check_fitted_spec_bench_compatible(fitted = fitted,
                                                  spec_bench = spec_bench))
 })
 
-  
+test_that("'check_fitted_spec_bench_compatible' throws correct error when 'spec_bench' does not have timevar", {
+  data <- data.frame(time = rep(1:3, times = 2),
+                     sex = rep(c("F", "M"), each = 3),
+                     value = 1:6)
+  fitted <- fit_ts(data, indvar = "value", byvar = "sex")
+  spec_bench <- Benchmarks(data.frame(wrong = c(10, 10), q50 = 2:1, q90 = 3:2, sex = c("F", "M")))
+  expect_error(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                  spec_bench = spec_bench),
+               "time variable from 'fitted' \\['time'\\] not found in 'spec_bench'")
+})
+
+test_that("'check_fitted_spec_bench_compatible' throws correct error when 'spec_bench' has by variables not in fitted", {
+  data <- data.frame(time = rep(1:3, times = 2),
+                     sex = rep(c("F", "M"), each = 3),
+                     value = 1:6)
+  fitted <- fit_ts(data, indvar = "value", byvar = "sex")
+  spec_bench <- Benchmarks(data.frame(time = c(10, 10), q50 = 2:1, q90 = 3:2, wrong = c("F", "M")))
+  expect_error(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                  spec_bench = spec_bench),
+               "'spec_bench' has variable \\['wrong'\\] not found in 'fitted'")
+})
+
+test_that("'check_fitted_spec_bench_compatible' throws correct error when 'fitted' has combination of 'by' variables not found in 'spec_bench'", {
+  data <- data.frame(time = rep(1:3, times = 3),
+                     sex = rep(c("F", "M", "D"), each = 3),
+                     value = 1:9)
+  fitted <- fit_ts(data, indvar = "value", byvar = "sex")
+  spec_bench <- Benchmarks(data.frame(time = c(10, 10), q50 = 2:1, q90 = 3:2, sex = c("F", "M")))
+  expect_error(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                  spec_bench = spec_bench),
+               "combination of 'by' variables found in 'fitted' but not in 'spec_bench':")
+})
+
+test_that("'check_fitted_spec_bench_compatible' throws correct error when 'log' is TRUE but q50 non-positive", {
+  data <- data.frame(time = rep(1:3, times = 2),
+                     sex = rep(c("F", "M"), each = 3),
+                     value = 1:6)
+  fitted <- fit_ts(data, indvar = "value", byvar = "sex", log = TRUE)
+  spec_bench <- Benchmarks(data.frame(time = c(10, 10), q50 = 0:1, q90 = 3:2, sex = c("F", "M")))
+  expect_error(check_fitted_spec_bench_compatible(fitted = fitted,
+                                                  spec_bench = spec_bench),
+               "'log' is TRUE, but 'q50' in 'spec_bench' has value \\[0\\] less than or equal to 0")
+})  
 
 
 ## 'check_is_fitted' ----------------------------------------------------------
@@ -202,3 +244,32 @@ test_that("'check_is_spec_bench' throws correct error with invalid input", {
   expect_error(check_is_spec_bench(NULL),
                "'spec_bench' has class \"NULL\"")
 })
+
+
+## 'check_time_labels_spec_bench_compatible' ----------------------------------
+
+test_that("'check_time_labels_spec_bench_compatible' returns TRUE with valid input", {
+  time_labels <- c("2015-2020", "2020-2025", "2025-2030", "2030-2035")
+  bench <- Benchmarks(data.frame(time = c("2020-2025", "2025-2030"),
+                                 q50 = 3:4,
+                                 q90 = 5:6))
+  timevar <- "time"
+  expect_true(check_time_labels_spec_bench_compatible(time_labels = time_labels,
+                                                      spec_bench = bench,
+                                                      timevar = timevar))
+})
+
+test_that("'check_time_labels_spec_bench_compatible' returns correct error with mismatched labels", {
+  time_labels <- c("2015-2020", "2020-2025", "2025-2030", "2030-2035")
+  bench <- Benchmarks(data.frame(time = c("2020-2025", "wrong"),
+                                 q50 = 3:4,
+                                 q90 = 5:6))
+  timevar <- "time"
+  expect_error(check_time_labels_spec_bench_compatible(time_labels = time_labels,
+                                                      spec_bench = bench,
+                                                      timevar = timevar),
+               "'spec_bench' has time label \\[\"wrong\"\\] not found in 'fitted'")
+})
+
+  
+  

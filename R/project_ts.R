@@ -1,4 +1,5 @@
 
+## HAS_TESTS
 #' Project a Demographic Indicator
 #'
 #' Construct a projection for a
@@ -42,6 +43,7 @@
 project_ts <- function(fitted, time_labels, spec_bench = NULL) {
   check_is_fitted(fitted)
   timevar <- fitted$timevar
+  byvar = fitted$byvar
   spec_ts <- fitted$spec_ts
   by <- fitted$by
   log <- fitted$log
@@ -51,9 +53,12 @@ project_ts <- function(fitted, time_labels, spec_bench = NULL) {
     check_fitted_spec_bench_compatible(fitted = fitted,
                                        spec_bench = spec_bench)
     check_time_labels_spec_bench_compatible(time_labels = time_labels,
-                                            spec_bench = spec_bench)
+                                            spec_bench = spec_bench,
+                                            timevar = timevar)
     mean_sd_bench <- make_mean_sd_bench(spec_bench = spec_bench,
                                         timevar = timevar,
+                                        byvar = byvar,
+                                        by = by,
                                         time_labels = time_labels,
                                         log = log)
     mean_bench <- mean_sd_bench$mean
@@ -76,7 +81,7 @@ project_ts <- function(fitted, time_labels, spec_bench = NULL) {
                      spec_ts = spec_ts,
                      fitted = fitted,
                      by = by,
-                     labels_time_fit = fitted$labels_time,
+                     labels_time_fitted = fitted$labels_time,
                      log = log,
                      labels_time_project = time_labels,
                      mean_bench = mean_bench,

@@ -160,27 +160,9 @@ check_data_benchmarks <- function(data) {
   ## all OK
   invisible(TRUE)
 }
-  
 
 
 ## HAS_TESTS
-#' Check that 'fitted' has Class 'BayesProj_fitted'
-#'
-#' @param fitted
-#'
-#' @returns TRUE, invisibly
-#'
-#' @noRd
-check_is_fitted <- function(fitted) {
-    if (!inherits(fitted, "BayesProj_fitted"))
-    stop(gettextf("'%s' has class \"%s\"",
-                  "fitted",
-                  class(fitted)),
-         call. = FALSE)
-    invisible(TRUE)
-}
-
-
 #' Check that 'fitted' and 'spec_bench' are Consistent with Each Other
 #'
 #' @param fitted Object of class `"BayesProj_fitted"
@@ -209,22 +191,22 @@ check_fitted_spec_bench_compatible <- function(fitted, spec_bench) {
   is_in_byvar <- nms_bench_by %in% byvar
   i_not_in_byvar <- match(FALSE, is_in_byvar, nomatch = 0L)
   if (i_not_in_byvar > 0L)
-    stop(gettextf("variable '%s' in '%s' but '%s' does not",
+    stop(gettextf("'%s' has variable ['%s'] not found in '%s'",
                   "spec_bench",
                   nms_bench_by[[i_not_in_byvar]],
                   "fitted"),
          call. = FALSE)
   ## 'spec_bench' has a value for every combination in 'by'
-  id_bench <- data_bench[nms_bench_by]
-  id_fitted <- by[nms_bench_by]
-  id_bench <- do.call(paste0, id_bench)
-  id_fitted <- do.call(paste0, id_fitted)
+  vars_bench <- data_bench[nms_bench_by]
+  vars_fitted <- by[nms_bench_by]
+  id_bench <- do.call(paste, vars_bench)
+  id_fitted <- do.call(paste, vars_fitted)
   is_in_bench <- id_fitted %in% id_bench
   i_not_in_bench <- match(FALSE, is_in_bench, nomatch = 0L)
   if (i_not_in_bench > 0L) {
     str_not_in_bench <- sprintf("    %s: %s",
                                 nms_bench_by,
-                                unlist(ans[i_not_in_bench, ]))
+                                unlist(vars_fitted[i_not_in_bench, ]))
     str_not_in_bench <- paste(str_not_in_bench, collapse = "\n")
     stop(gettextf(paste0("combination of 'by' variables found in '%s' but not in '%s':\n",
                          "%s"),
@@ -235,7 +217,7 @@ check_fitted_spec_bench_compatible <- function(fitted, spec_bench) {
   }
   ## quantiles all positive if 'log' is true
   if (log) {
-    q50 <- bench_data[["q50"]]
+    q50 <- data_bench[["q50"]]
     is_pos <- q50 > 0
     i_nonpos <- match(FALSE, is_pos, nomatch = 0L)
     if (i_nonpos > 0L)
@@ -270,7 +252,43 @@ check_gt_zero <- function(x, nm) {
 }
 
 
-## NO_TESTS
+## HAS_TESTS
+#' Check that 'fitted' has Class 'BayesProj_fitted'
+#'
+#' @param fitted
+#'
+#' @returns TRUE, invisibly
+#'
+#' @noRd
+check_is_fitted <- function(fitted) {
+    if (!inherits(fitted, "BayesProj_fitted"))
+    stop(gettextf("'%s' has class \"%s\"",
+                  "fitted",
+                  class(fitted)),
+         call. = FALSE)
+    invisible(TRUE)
+}
+
+
+## HAS_TESTS
+#' Check that 'spec_bench' has Class 'BayesProj_spec_bench'
+#'
+#' @param spec_bench
+#'
+#' @returns TRUE, invisibly
+#'
+#' @noRd
+check_is_spec_bench <- function(spec_bench) {
+    if (!inherits(spec_bench, "BayesProj_spec_bench"))
+    stop(gettextf("'%s' has class \"%s\"",
+                  "spec_bench",
+                  class(spec_bench)),
+         call. = FALSE)
+    invisible(TRUE)
+}
+
+
+## HAS_TESTS
 #' Check 'log' argument
 #'
 #' @param log TRUE or FALSE
@@ -297,18 +315,28 @@ check_log <- function(log) {
 
 
 ## HAS_TESTS
-#' Check that 'spec_bench' has Class 'BayesProj_spec_bench'
+#' Check that Time Labels Used by 'spec_bench' All
+#' Included in 'time_labels'
 #'
-#' @param spec_bench
+#' @param time_labels Character vector of time labels
+#' @param spec_bench Object of class `"BayesProj_spec_bench"`
+#' @param timevar Name of the time variable
 #'
 #' @returns TRUE, invisibly
 #'
 #' @noRd
-check_is_spec_bench <- function(spec_bench) {
-    if (!inherits(spec_bench, "BayesProj_spec_bench"))
-    stop(gettextf("'%s' has class \"%s\"",
+check_time_labels_spec_bench_compatible <- function(time_labels,
+                                                    spec_bench,
+                                                    timevar) {
+  data <- spec_bench$data
+  time_bench <- data[[timevar]]
+  is_in_time_labels <- time_bench %in% time_labels
+  i_not_in_time_labels <- match(FALSE, is_in_time_labels, nomatch = 0L)
+  if (i_not_in_time_labels > 0L)
+    stop(gettextf("'%s' has time label [\"%s\"] not found in '%s'",
                   "spec_bench",
-                  class(spec_bench)),
-         call. = FALSE)
-    invisible(TRUE)
+                  time_bench[[i_not_in_time_labels]],
+                  "fitted"),
+         call = FALSE)
+  invisible(TRUE)
 }

@@ -16,8 +16,7 @@
 #'
 #' - A time variable. The variable name should match the `timevar`
 #'   argument used with [fit_ts()]. The labels must match, or be
-#'   a subset of, the labels used in [project_ts()]. The labels
-#'   must include the final period of the projection.
+#'   a subset of, the labels used in [project_ts()]. 
 #' - `q50`. The 50th quantile (ie the median)
 #'   for the value being forecast.
 #'   There is a 50% chance that the true value will
