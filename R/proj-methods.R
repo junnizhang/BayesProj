@@ -121,9 +121,13 @@ components.BayesProj_proj <- function(object,
                                       what = NULL,
                                       interval = 0.95,
                                       ...) {
-  draws_post <- draw_post_proj(object)
+  ans <- draw_post_proj(object)
+  ans <- lapply(ans,
+                make_credible_intervals,
+                interval = interval)
   benchmarks_df <- make_benchmarks_df(object)
-  ans <- c(draws_post, list(benchmarks = benchmarks_df))
+  if (!is.null(benchmarks_df))
+    ans <- c(ans, list(benchmarks = benchmarks_df))
   if (!is.null(what)) {
     nms <- names(ans)
     if (!all(what %in% nms)) {
@@ -134,9 +138,6 @@ components.BayesProj_proj <- function(object,
     }
     ans <- ans[what]
   }
-  ans <- lapply(ans,
-                make_credible_intervals,
-                interval = interval)
   if (length(ans) == 1L)
     ans <- ans[[1L]]
   ans

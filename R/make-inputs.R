@@ -149,7 +149,7 @@ make_benchmarks_inner <- function(mean_sd_bench,
   n_draw <- length(indvar_final)
   i_bench <- seq.int(from = 2L, length.out = n_period)
   spline_interpolate <- function(init, bench) {
-    f <- splinefun(x = c(1L, i_obs + 1L),
+    f <- stats::splinefun(x = c(1L, i_obs + 1L),
                    y = c(init, bench),
                    method = method_spline)
     f(x = i_bench)

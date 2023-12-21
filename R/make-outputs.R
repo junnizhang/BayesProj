@@ -92,7 +92,7 @@ draw_post_fit_by <- function(fitted_by, spec, n_draw, timevar, labels_time) {
 }
 
 
-## NO_TESTS
+## HAS_TESTS
 #' Draw from the Posterior Distribution for Parameters
 #' for Forecasted Model - All Combinations of 'By' Variables
 #'
@@ -252,6 +252,44 @@ get_hyper <- function(draws, byvar) {
 
 
 ## HAS_TESTS
+#' Make Data Frame Holding Values for Benchmarks
+#'
+#' @param `x` Object of class `"BayesProj_proj"`
+#'
+#' @returns A data frame or NULL
+#'
+#' @noRd
+make_benchmarks_df <- function(x) {
+  benchmarks <- x$benchmarks
+  data <- x$data
+  by <- x$by
+  indvar <- x$indvar
+  timevar <- x$timevar
+  labels_time_project <- x$labels_time_project
+  val <- benchmarks$.benchmarks
+  no_benchmarks <- all(vapply(val, is.null, TRUE))
+  if (no_benchmarks)
+    return(NULL)
+  n_by <- nrow(by)
+  n_period <- length(labels_time_project)
+  ans <- vctrs::vec_rep_each(by, times = n_period)
+  ans[[timevar]] <- rep(labels_time_project, times = n_by)
+  is_ind_list <- is.list(data[[indvar]])
+  if (is_ind_list) {
+    ans$.mean <- unlist(lapply(val, function(x) transpose_list(lapply(x, function(y) y$mean))),
+                        recursive = FALSE)
+    ans$.sd <- unlist(lapply(val, function(x) x[[1L]]$sd))
+  }
+  else {
+    ans$.mean <- unlist(lapply(val, function(x) x[[1L]]$mean))
+    ans$.sd <- unlist(lapply(val, function(x) x[[1L]]$sd))
+  }
+  ans <- tibble::as_tibble(ans)
+  ans
+}
+
+
+## HAS_TESTS
 #' Create Credible Intervals from List Column with Draws
 #'
 #' Modify a data frame so it uses ".probability"
@@ -283,8 +321,6 @@ make_credible_intervals <- function(x, interval) {
   ans
 }
 
-
- 
 
 ## HAS_TESTS
 #' Given a Credible Interval Width,
