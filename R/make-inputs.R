@@ -45,6 +45,127 @@ format_timevar <- function(data, timevar) {
 }
 
 
+## 'get_indvar_final' ---------------------------------------------------------
+
+
+#' Get Final Observed/Estimated Values for Indicator
+#'
+#' Values can be list or numeric.
+#' Final values cannot have NAs.
+#'
+#' @param data Input data
+#' @param indvar Name of indicator variable
+#' @param timevar Name of time variable
+#' @param byvar Names of by variables
+#' (can be length 0)
+#' @param n_draw Number of draws
+#'
+#' @returns A data frame with by variables
+#' and colnam '.indvar_final'
+#'
+#' @noRd
+get_indvar_final <- function(data,
+                             indvar,
+                             timevar,
+                             byvar,
+                             n_draw) {
+  time <- data[[timevar]]
+  if (is.factor(time))
+    is_final <- time == max(as.numeric(levels(time)))
+  else
+    is_final <- time == max(time)
+  data <- data[is_final, c(byvar, indvar), drop = FALSE]
+  ind <- data[[indvar]]
+  if (is.numeric(ind)) {
+    if (anyNA(ind))
+      stop(gettextf("variable '%s' has NA in final estimation period",
+                    indvar),
+           call. = FALSE)
+    ind <- lapply(ind, rep.int, times = n_draw)
+  }
+  ans <- data[byvar]
+  ans$.indvar_final <- ind
+  rownames(ans) <- NULL
+  ans
+}
+
+
+## HAS_TESTS
+#' Calculate Complete Benchmark 'mean' and 'sd' Values
+#' for Every Draw within Every Combination of the By
+#' Variables
+#'
+#' @param mean_sd_bench A data frame with column '.mean_sd_bench'
+#' @param indvar_final A data frame with column '.indvar_final'
+#' @param method_spline String passed to stats::splinefun
+#' @param byvar Character vector with names of by variables.
+#' Can be length 0.
+#'
+#' @returns A data frame with column '.benchmarks'
+#'
+#' @noRd
+make_benchmarks <- function(mean_sd_bench,
+                            indvar_final,
+                            method_spline,
+                            byvar) {
+  inputs <- merge(mean_sd_bench, indvar_final, by = byvar)
+  ans <- inputs[byvar]
+  ans$.benchmarks <- .mapply(make_benchmarks_inner,
+                             dots = list(mean_sd_bench = inputs$.mean_sd_bench,
+                                         indvar_final = inputs$.indvar_final),
+                             MoreArgs = list(method_spline = method_spline))
+  ans
+}
+
+
+## HAS_TESTS
+#' Calculate Complete Benchmarks for Every
+#' Draw within a Combination of the By Variables
+#'
+#' @param mean_sd_bench Named list with elements
+#' 'mean' and 'sd', each of which has length
+#' equal to number of periods of forecast,
+#' and may contain NAs
+#' @param indvar_final Numeric vector with length
+#' equal to number of draws
+#' @param method_spline String, based to
+#' stats::splinefun
+#'
+#' @returns A list with length 'n_draw'
+#' each element of which has a 'mean'
+#' and 'sd' component
+#' 
+#' @noRd
+make_benchmarks_inner <- function(mean_sd_bench,
+                                  indvar_final,
+                                  method_spline) {
+  mean_bench <- mean_sd_bench$mean
+  sd_bench <- mean_sd_bench$sd
+  is_obs <- !is.na(mean_bench)
+  mean_bench_obs <- mean_bench[is_obs]
+  sd_bench_obs <- sd_bench[is_obs]
+  i_obs <- which(is_obs)
+  n_period <- length(mean_bench)
+  n_draw <- length(indvar_final)
+  i_bench <- seq.int(from = 2L, length.out = n_period)
+  spline_interpolate <- function(init, bench) {
+    f <- splinefun(x = c(1L, i_obs + 1L),
+                   y = c(init, bench),
+                   method = method_spline)
+    f(x = i_bench)
+  }
+  sd <- spline_interpolate(init = 0, bench = sd_bench_obs)
+  ans <- vector(mode = "list", length = n_draw)
+  for (i_draw in seq_len(n_draw)) {
+    mean <- spline_interpolate(init = indvar_final[[i_draw]],
+                               bench = mean_bench_obs)
+    ans[[i_draw]] <- list(mean = mean, sd = sd)
+  }
+  ans
+}
+
+
+
 ## HAS_TESTS
 #' Get the Row Number for Elements of 'spec_bench' that Align
 #' with Elements of 'fitted'
@@ -69,21 +190,6 @@ make_i_bench <- function(by_fitted, by_bench) {
 }
 
 
-## HAS_TESTS
-#' Turn Benchmark Quantiles into Means
-#'
-#' @param x A data frame with variable `q50`
-#' @param log Whether to apply log
-#'
-#' @returns A data frame
-#'
-#' @noRd
-make_mean_bench <- function(x, log) {
-  q50 <- x[["q50"]]
-  if (log) log(q50) else q50
-}
-
-
 #' Use Information in 'spec_bench' to Create Lists of Benchmark
 #' Means and Standard Deviations for Each Combination of 'by'
 #' Variables in 'fitted'
@@ -97,7 +203,8 @@ make_mean_bench <- function(x, log) {
 #' for periods in projection interval
 #' @param log Whether to model on the log scale
 #'
-#' @returns A named list of numeric vectors
+#' @returns A data frame with by variables
+#' and a '.mean_sd' variable
 #'
 #' @noRd
 make_mean_sd_bench <- function(spec_bench,
@@ -115,17 +222,38 @@ make_mean_sd_bench <- function(spec_bench,
   val_bench <- data$val
   by_bench <- data$key
   val_bench <- lapply(val_bench, expand_val_bench, timevar = timevar)
-  mean <- lapply(val_bench, make_mean_bench, log = log)
-  sd <- lapply(val_bench, make_sd_bench, log = log)
+  mean_sd <- lapply(val_bench, make_mean_sd_bench_inner, log = log)
   i_bench <- make_i_bench(by_fitted = by,
                           by_bench = by_bench)
-  mean <- mean[i_bench]
-  sd <- sd[i_bench]
-  list(mean = mean,
-       sd = sd)
+  ans <- by
+  ans$.mean_sd_bench <- mean_sd
+  ans
 }
-  
-  
+
+
+## HAS_TESTS
+#' Turn Benchmark Quantiles into Means
+#' and Standard Deviations
+#'
+#' @param x A data frame with variables `q50` and `q90`
+#' @param log Whether to apply log
+#'
+#' @returns A data frame
+#'
+#' @noRd
+make_mean_sd_bench_inner <- function(x, log) {
+  z90 <- stats::qnorm(0.9)
+  q50 <- x[["q50"]]
+  q90 <- x[["q90"]]
+  if (log) {
+    q50 <- log(q50)
+    q90 <- log(q90)
+  }
+  list(mean = q50,
+       sd = (q90 - q50) / z90)
+}
+
+
 ## HAS_TESTS
 #' Prepare Inputs for Fitting Time Series Model
 #'
@@ -149,27 +277,6 @@ prepare_inputs_fit <- function(data, indvar, timevar, byvar, log) {
   data <- take_log_ind(data = data,
                        log = log)
   data
-}
-
-
-## HAS_TESTS
-#' Turn Benchmark Quantiles into Standard Deviations
-#'
-#' @param x A data frame with variable `q50`
-#' @param log Whether to apply log
-#'
-#' @returns A data frame
-#'
-#' @noRd
-make_sd_bench <- function(x, log) {
-  z90 <- qnorm(0.9)
-  q50 <- x[["q50"]]
-  q90 <- x[["q90"]]
-  if (log) {
-    q50 <- log(q50)
-    q90 <- log(q90)
-  }
-  (q90 - q50) / z90
 }
 
 

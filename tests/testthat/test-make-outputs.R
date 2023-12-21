@@ -1,6 +1,4 @@
 
-
-
 ## 'draw_post_fit' ---------------------------------------------------------
 
 test_that("draw_post_fit' works with valid inputs - indvar is numeric, no by", {
@@ -100,6 +98,122 @@ test_that("draw_post_fit_by' works with valid inputs - indvar is list ", {
   expect_identical(names(ans$level)[[1L]], "time")
   expect_identical(names(ans$trend)[[1L]], "time")
   expect_identical(names(ans$hyper)[[1L]], "hyper")
+})
+
+
+## 'draw_post_proj' ----------------------------------------------------------------
+
+test_that("draw_post_proj' works with damped trend, no by, no bench", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  projected <- project_ts(fitted, time_labels = 6:10)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "trend", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:3], nrow) == 5))
+})
+
+test_that("draw_post_proj' works with damped trend, no by, has bench", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 10, q90 = 12))
+  projected <- project_ts(fitted, time_labels = 6:10, spec_bench = spec_bench)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "trend", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:3], nrow) == 5))
+})
+
+test_that("draw_post_proj' works with damped trend, has by, bench", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 1:10))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 10, q90 = 12))
+  projected <- project_ts(fitted, time_labels = 6:10, spec_bench = spec_bench)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "trend", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:3], nrow) == 2 * 5))
+})
+
+
+## 'draw_post_proj_by' --------------------------------------------------------
+
+test_that("draw_post_proj' works with damped trend", {
+  spec_ts <- DampedTrend()
+  par_final <- list(1:2, 2:3)
+  hyper <- list(1:4, 2:5)
+  benchmarks <- list(list(mean = 1:4, sd = c(0.2, 0.3, 0.4, 0.5)),
+                     list(mean = 0:3, sd = c(0.25, 0.35, 0.45, 0.55)))
+  n_draw <- 2L
+  labels_time_project <- 2001:2004
+  indvar <- "y"
+  timevar <- "time"
+  ans <- draw_post_proj_by(spec_ts = spec_ts,
+                           par_final = par_final,
+                           hyper = hyper,
+                           benchmarks = benchmarks,
+                           n_draw = n_draw,
+                           labels_time_project = labels_time_project,
+                           indvar = indvar,
+                           timevar = timevar)
+  expect_identical(names(ans), c("y", "level", "trend", "hyper"))
+  expect_identical(nrow(ans$level), length(benchmarks[[1]]$mean))
+  expect_identical(length(ans$level$.probability[[1]]), length(par_final))
+})
+
+
+## 'get_hyper' ----------------------------------------------------------------
+
+test_that("get_hyper' works with damped trend, no by", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fit <- fit_ts(data,
+                indvar = "y",
+                spec_ts = DampedTrend())
+  n_draw(fit) <- 5
+  draws <- draw_post_fit(fit)
+  ans_obtained <- get_hyper(draws = draws, byvar = fit$byvar)
+  ans_expected <- data.frame(.hyper = NA)
+  hyper <- matrix(unlist(draws$hyper$.probability), nr = 5)
+  hyper <- lapply(1:5, function(i) hyper[i,])
+  ans_expected$.hyper <- list(hyper)
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("get_hyper' works with damped trend, has by", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 1:10))
+  fit <- fit_ts(data,
+                indvar = "y",
+                byvar = "sex",
+                spec_ts = DampedTrend())
+  n_draw(fit) <- 5
+  draws <- draw_post_fit(fit)
+  ans_obtained <- get_hyper(draws = draws, byvar = fit$byvar)
+  ans_expected <- data.frame(sex = c("f", "m"))
+  hyper1 <- matrix(unlist(draws$hyper$.probability[1:4]), nr = 5)
+  hyper2 <- matrix(unlist(draws$hyper$.probability[5:8]), nr = 5)
+  hyper1 <- lapply(1:5, function(i) hyper1[i,])
+  hyper2 <- lapply(1:5, function(i) hyper2[i,])
+  ans_expected$.hyper <- list(hyper1, hyper2)
+  expect_identical(ans_obtained, ans_expected)
 })
 
 

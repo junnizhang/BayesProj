@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitted-methods.R
 \name{augment.BayesProj_fitted}
 \alias{augment.BayesProj_fitted}
-\title{Obtain Smoothed Estimates, Combined with Original Data}
+\title{Smoothed Estimates of Indicator, Combined with Original Data}
 \usage{
 \method{augment}{BayesProj_fitted}(x, interval = 0.95, ...)
 }
@@ -26,8 +26,8 @@ from the posterior distribution.
 }
 }
 \description{
-Extract smoothed values for indicator being
-modelled in a call to \code{\link[=fit_ts]{fit_ts()}},
+Given the output from a call to \code{\link[=fit_ts]{fit_ts()}},
+extract smoothed values for the demographic indicator,
 merged with the original data.
 }
 \details{

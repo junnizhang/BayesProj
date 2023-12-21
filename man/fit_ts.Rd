@@ -35,11 +35,8 @@ log scale. Default is \code{FALSE}.}
 An object of class \code{"BayesProj_fitted"}.
 }
 \description{
-Use historical data to obtain estimates
-for the parameters in a time series model.
-Typically used to format a
-demographic indicator, such as the
-total fertility rate.
+Fit a time series model to a demographic
+indicator, such as the total fertility rate.
 }
 \section{Format of indicator}{
 
@@ -57,7 +54,7 @@ For an example of multiple draws, see \code{\link[BayesRates:total_rate]{BayesRa
 
 
 \code{model_ts()} has an optional \code{byvar} argument,
-specifying variables in \code{data}. If
+specifying 'by' variables in \code{data}. If
 a value for \code{byvar} is supplied, then
 separate models are fitted for each combination
 of the 'by' variables.
@@ -74,7 +71,6 @@ up than down.
 }
 
 \examples{
-
 library(tibble)
 data <- tribble(~time, ~val,
                 2015,  4.3,

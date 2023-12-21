@@ -1,5 +1,4 @@
 
-
 ## HAS_TESTS
 #' Draw from the Posterior Distribution for Parameters from
 #' Fitted Model - All Combinations of 'By' Variables
@@ -34,37 +33,9 @@ draw_post_fit <- function(x) {
       ans[[i]] <- cbind(by_rep, ans[[i]])
     }
   }
+  for (i in seq_along(ans))
+    rownames(ans[[i]]) <- NULL
   ans
-}
-
-
-## NO_TESTS
-#' Draw from the Posterior Distribution for Parameters
-#' for Forecasted Model - All Combinations of 'By' Variables
-#'
-#' @param x Object of class "BayeProj_proj"
-#'
-#' @returns A names list of data frames.
-#'
-#' @noRd
-draw_post_proj <- function(x) {
-  timevar <- x$timevar
-  spec_ts <- x$spec_ts
-  by <- x$by
-  n_draw <- x$n_draw
-  mean_bench <- x$mean_bench
-  sd_bench <- x$sd_bench
-  draws_post_fitted <- draws_post_fit(x)
-  par_final <- get_par_final(spec = spec_ts,
-                             draws_post = draws_post_fitted)
-  hyper <- draws_post_fitted[["hyper"]]
-  ans <- .mapply(draw_post_proj_by,
-                 dots = list(par_final = par_final,
-                             hyper = hyper[[".probability"]],
-                             mean_bench = mean_bench,
-                             sd_bench = sd_bench),
-                 MoreArgs = list(spec_ts = spec_ts))
-  ## PROCESS SOME MORE
 }
 
 
@@ -123,45 +94,161 @@ draw_post_fit_by <- function(fitted_by, spec, n_draw, timevar, labels_time) {
 
 ## NO_TESTS
 #' Draw from the Posterior Distribution for Parameters
-#' from Forecasts -  One Combination of 'By' Variables
+#' for Forecasted Model - All Combinations of 'By' Variables
 #'
-#' @param fitted_by List (of length 1 or 'n_draw') of lists
-#' each of which has elements 'mean' and 'prec'
-#' @param spec Object of class 'BayesProj_spec_ts'
-#' @param n_draw Number of draws from posterior
-#' @param timevar Name of time variable
-#' @param labels_time Vector of labels for historical periods,
-#' including periods with no data
+#' @param x Object of class "BayeProj_proj"
 #'
 #' @returns A names list of data frames.
+#'
+#' @noRd
+draw_post_proj <- function(x) {
+  data <- x$data
+  indvar <- x$indvar
+  timevar <- x$timevar
+  byvar <- x$byvar
+  spec_ts <- x$spec_ts
+  by <- x$by
+  n_draw <- x$n_draw
+  labels_time_project <- x$labels_time_project
+  benchmarks <- x$benchmarks
+  draws_post_fitted <- draw_post_fit(x)
+  par_final <- get_par_final(spec_ts = spec_ts,
+                             draws_post = draws_post_fitted,
+                             timevar = timevar,
+                             byvar = byvar)
+  hyper <- get_hyper(draws = draws_post_fitted,
+                     byvar = byvar)
+  join_on_byvar <- function(x, y) merge(x, y, by = byvar)
+  inputs <- list(par_final,
+                 hyper,
+                 benchmarks)
+  inputs <- Reduce(join_on_byvar, inputs)
+  par_final <- inputs$.par_final
+  hyper <- inputs$.hyper
+  benchmarks <- inputs$.benchmarks
+  ans <-  .mapply(draw_post_proj_by,
+                  dots = list(par_final = par_final,
+                              hyper = hyper,
+                              benchmarks = benchmarks),
+                  MoreArgs = list(spec_ts = spec_ts,
+                                  n_draw = n_draw,
+                                  labels_time_project = labels_time_project,
+                                  indvar = indvar,
+                                  timevar = timevar))
+  nrows <- vapply(ans[[1L]], nrow, 1L)
+  rbind_list_elements <- function(x, y)
+    .mapply(rbind, dots = list(x, y), MoreArgs = list())
+  ans <- Reduce(rbind_list_elements, ans)
+  names(ans) <- names(nrows)
+  if (ncol(by) > 0L) {
+    for (i in seq_along(ans)) {
+      by_rep <- vctrs::vec_rep_each(by, times = nrows[[i]])
+      ans[[i]] <- cbind(by_rep, ans[[i]])
+    }
+  }
+  for (i in seq_along(ans))
+    rownames(ans[[i]]) <- NULL
+  ans
+}
+
+
+## HAS_TESTS
+#' Draw from the Posterior Distribution for Parameters
+#' from Forecasts -  One Combination of 'By' Variables
+#'
+#' @param spec_ts Object of class `"BayesProj_spec_ts"`
+#' @param par_final Numeric vector with final posterior
+#' draws from historical estimates
+#' @param hyper Numeric vector with posterior
+#' draws for hyper-parameters
+#' @param benchmarks Named list with elements
+#' 'mean' and 'sd'
+#' @param n_draw Number of draws
+#' @param labels_time_project Character vector with labels for
+#' future periods
+#' @param indvar Name of indicator
+#' @param timevar Name of the time variable
+#'
+#' @returns Named list of data frames.
 #'
 #' @noRd
 draw_post_proj_by <- function(spec_ts,
                               par_final,
                               hyper,
-                              mean_bench,
-                              sd_bench,
-                              n_draw) {
-  ans <- vector(mode = "list", length = n_draw)
+                              benchmarks,
+                              n_draw,
+                              labels_time_project,
+                              indvar,
+                              timevar) {
+  draws <- vector(mode = "list", length = n_draw)
+  has_benchmarks <- !is.null(benchmarks)
+  if (!has_benchmarks) {
+    n_period <- length(labels_time_project)
+    mean_bench <- rep(0, times = n_period)
+    sd_bench <- rep(Inf, times = n_period)
+  }
   for (i_draw in seq_len(n_draw)) {
-    mean_proj <- make_mean_proj(spec = spec_ts,
-                                par_final = par_final[[i_draw]],
-                                hyper = hyper[[i_draw]],
-                                mean_bench = mean_bench,
-                                sd_bench = sd_bench)
+    if (has_benchmarks) {
+      benchmarks_draw <- benchmarks[[i_draw]]
+      mean_bench <- benchmarks_draw$mean
+      sd_bench <- benchmarks_draw$sd
+    }
+    hyper_draw <- hyper[[i_draw]]
+    par_final_draw <- par_final[[i_draw]]
     prec_proj <- make_prec_proj(spec = spec_ts,
-                                hyper = hyper[[i_draw]],
+                                hyper = hyper_draw,
                                 sd_bench = sd_bench)
+    mean_proj <- make_mean_proj(spec = spec_ts,
+                                par_final = par_final_draw,
+                                hyper = hyper_draw,
+                                mean_bench = mean_bench,
+                                sd_bench = sd_bench,
+                                prec_proj = prec_proj)
     draw <- rmvn(n = 1L,
                  mean = mean_proj,
                  prec = prec_proj)
-    draw <- split_draw_proj(spec = spec_ts,
-                            draw = draw)
-    ans[[i_draw]] <- draw
+    draw <- c(draw, hyper_draw)
+    draws[[i_draw]] <- draw
   }
+  draws <- transpose_list(draws)
+  labels <- make_labels_proj(spec = spec_ts,
+                             labels_time_project = labels_time_project)
+  ans <- data.frame(labels = labels)
+  ans$.probability <- draws
+  what <- make_what_proj(spec = spec_ts,
+                         indvar = indvar,
+                         labels_time_project = labels_time_project)
+  ans <- split(ans, what)
+  vname <- make_vname_proj(spec = spec_ts,
+                           timevar = timevar)
+  for (i in seq_along(ans))
+    names(ans[[i]])[[1L]] <- vname[[i]]
   ans
 }
 
+
+## HAS_TESTS
+#' Format Hyper-Parameters from Fitted Model
+#'
+#' @param Draws returned by function 'draw_post_fit'
+#' @param byvar Names of 'by' variables
+#'
+#' @returns A tibble with the 'by' variables
+#' plus a list column called 'hyper'
+#'
+#' @noRd
+get_hyper <- function(draws, byvar) {
+  hyper <- draws[["hyper"]]
+  hyper <- vctrs::vec_split(x = hyper[[".probability"]],
+                            by = hyper[byvar])
+  ans <- hyper$key
+  val <- hyper$val
+  val <- lapply(val, function(x) matrix(unlist(x), ncol = length(x)))
+  val <- lapply(val, function(x) apply(x, 1L, identity, simplify = FALSE))
+  ans$.hyper <- val
+  rownames(ans) <- NULL
+  ans
+}
 
 
 ## HAS_TESTS
@@ -195,6 +282,8 @@ make_credible_intervals <- function(x, interval) {
   ans <- tibble::as_tibble(ans)
   ans
 }
+
+
  
 
 ## HAS_TESTS

@@ -45,9 +45,9 @@
 #' fitted <- fit_ts(data, indvar = "val")
 #' bench <- tribble(~time, ~q50, ~q90,
 #'                  2030,  1.8,  2.3)
-#' projected <- project(fitted = fitted,
-#'                      time_labels = 2023:2030,
-#'                      spec_bench = bench)
+#' projected <- project_ts(fitted = fitted,
+#'                         time_labels = 2023:2030,
+#'                         spec_bench = bench)
 #' augment(projected)
 #' @export
 augment.BayesProj_proj <- function(x,
@@ -97,8 +97,8 @@ augment.BayesProj_proj <- function(x,
 #'
 #' @seealso
 #' - [project_ts()] to project a time series model
-#' - \code{\link[=augment.BayesProj_fitted]{augment()}}
-#' combines data and estimates.
+#' - \code{\link[=augment.BayesProj_proj]{augment()}}
+#' combines data and benchmarks.
 #' - \code{\link[=n_draw<-]{n_draw()}} sets the default number
 #' of draws from the posterior distribution.
 #'
@@ -112,9 +112,9 @@ augment.BayesProj_proj <- function(x,
 #' fitted <- fit_ts(data, indvar = "val")
 #' bench <- tribble(~time, ~q50, ~q90,
 #'                  2030,  1.8,  2.3)
-#' projected <- project(fitted = fitted,
-#'                      time_labels = 2023:2030,
-#'                      spec_bench = bench)
+#' projected <- project_ts(fitted = fitted,
+#'                         time_labels = 2023:2030,
+#'                         spec_bench = bench)
 #' components(projected)
 #' @export
 components.BayesProj_proj <- function(object,
@@ -122,17 +122,19 @@ components.BayesProj_proj <- function(object,
                                       interval = 0.95,
                                       ...) {
   draws_post <- draw_post_proj(object)
+  benchmarks_df <- make_benchmarks_df(object)
+  ans <- c(draws_post, list(benchmarks = benchmarks_df))
   if (!is.null(what)) {
-    nms <- names(draws_post)
+    nms <- names(ans)
     if (!all(what %in% nms)) {
       stop(gettextf("Invalid value for '%s' : valid choices are %s",
                     "what",
                     paste(sprintf("'%s'", nms), collapse = ", ")),
            call. = FALSE)
     }
-    draws_post <- draws_post[what]
+    ans <- ans[what]
   }
-  ans <- lapply(draws_post,
+  ans <- lapply(ans,
                 make_credible_intervals,
                 interval = interval)
   if (length(ans) == 1L)

@@ -74,11 +74,17 @@ fit_ts <- function(data,
                    log = FALSE) {
   ## check inputs
   checkmate::assert_string(indvar, min.chars = 1L)
+  if (grepl("^\\.", indvar))
+    stop("'indvar' starts with a '.'")
   checkmate::assert_string(timevar, min.chars = 1L)
+  if (grepl("^\\.", timevar))
+    stop("'timevar' starts with a '.'")
   checkmate::assert_character(byvar,
 			      min.chars = 1L,
 			      any.missing = FALSE,
 			      unique = TRUE)
+  if (any(grepl("^\\.", byvar)))
+    stop("'byvar' includes a name that starts with a '.'")
   check_data(data = data,
 	     indvar = indvar,
 	     timevar = timevar,

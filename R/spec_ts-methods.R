@@ -40,6 +40,50 @@ draw_post_fit_one.BayesProj_spec_ts <- function(spec, mean, prec, n_draw) {
 }
 
 
+## 'get_par_final' ------------------------------------------------------------
+
+#' Get the Most Recent Values for Time-Varying Parameters
+#'
+#' @param spec_ts An object of class `"BayesProj_spec_ts"`
+#' @param draws_post Named list of tibbles
+#' @param timevar Name of time variable
+#' @param byvar Names of by variables (possibly length 0)
+#'
+#' @returns Data frame
+#'
+#' @noRd
+get_par_final <- function(spec_ts, draws_post, timevar, byvar) {
+  UseMethod("get_par_final")
+}
+
+## HAS_TESTS
+#' @export
+get_par_final.BayesProj_spec_ts_dampedtrend <- function(spec_ts,
+                                                        draws_post,
+                                                        timevar,
+                                                        byvar) {
+  level <- draws_post$level
+  trend <- draws_post$trend
+  is_final_level <- level[[timevar]] == max(level[[timevar]])
+  is_final_trend <- trend[[timevar]] == max(trend[[timevar]])
+  level <- level[is_final_level, c(byvar, ".probability"), drop = FALSE]
+  trend <- trend[is_final_trend, c(byvar, ".probability"), drop = FALSE]
+  ans <- merge(level, trend, by = byvar)
+  n <- length(ans)
+  c_level_trend <- function(level, trend)
+    .mapply(c,
+            dots = list(level = level, trend = trend),
+            MoreArgs = list())
+  par_final <- .mapply(c_level_trend,
+                       dots = list(level = ans[[n - 1L]],
+                                   trend = ans[[n]]),
+                       MoreArgs = list())
+  ans <- ans[seq_len(n - 2L)]
+  ans$.par_final <- par_final
+  ans
+}
+
+
 ## 'make_class_spec' ----------------------------------------------------------
 
 #' Make 'class_spec' String
@@ -154,6 +198,34 @@ make_labels_fit.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time) {
   trend <- labels_time
   hyper <- c("sd_obs", "sd_level", "sd_trend", "damp")
   c(level, trend, hyper)
+}
+
+
+## 'make_labels_proj' ---------------------------------------------------------
+
+#' Derive Labels to Use When Reporting on Projection
+#'
+#' Creates labels for a single combination of
+#' the 'by' variables
+#'
+#' @param spec Object of class 'BayesProj_spec_ts'
+#' @param labels_time_project Vector of labels for projection periods
+#'
+#' @returns A character vector
+#'
+#' noRd
+make_labels_proj <- function(spec, labels_time_project) {
+  UseMethod("make_labels_proj")
+}
+
+## HAS_TESTS
+#' @export
+make_labels_proj.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time_project) {
+  y <- labels_time_project
+  level <- labels_time_project
+  trend <- labels_time_project
+  hyper <- c("sd_obs", "sd_level", "sd_trend", "damp")
+  c(y, level, trend, hyper)
 }  
 
 
@@ -200,21 +272,23 @@ make_level.BayesProj_spec_ts <- function(spec, y) {
 #' for each period in the projection.
 #' @param sd_bench Numeric vector with one standard deviation
 #' for each period in the projection.
+#' @param prec_proj Precision matrix
 #'
 #' @returns Numeric vector with length equal to 
 #' three times the number of projected periods.
 #'
 #' @noRd
-make_mean_proj <- function(spec, par_final, hyper, sd_bench) {
+make_mean_proj <- function(spec, par_final, hyper, mean_bench, sd_bench, prec_proj) {
   UseMethod("make_mean_proj")
 }
 
 #' @export
 make_mean_proj.BayesProj_spec_ts_dampedtrend <- function(spec,
-                                                            par_final,
-                                                            hyper,
-                                                            mean_bench,
-                                                            sd_bench) {
+                                                         par_final,
+                                                         hyper,
+                                                         mean_bench,
+                                                         sd_bench,
+                                                         prec_proj) {
   ## extract and transform parameter estimates
   level_final <- par_final[[1L]]
   trend_final <- par_final[[2L]]
@@ -228,13 +302,16 @@ make_mean_proj.BayesProj_spec_ts_dampedtrend <- function(spec,
   prec_trend <- 1 / sd_trend^2    
   prec_bench <- 1 / sd_bench^2 ## vector
   ## make vectors
-  v_y <- mean_bench / prec_bench
-  v_level <- c(damp * trend_final * prec_trend - level_final * prec_level,
+  v_y <- mean_bench * prec_bench
+  v_level <- c((level_final + trend_final) * prec_level,
                rep.int(0, times = n - 1L))
-  v_trend <- c(level_final * prec_level,
+  v_trend <- c(damp * trend_final * prec_trend,
                rep.int(0, times = n - 1L))
   ## combine and return
-  c(v_level, v_trend, v_y)
+  v <- c(v_y, v_level, v_trend)
+  ans <- solve(prec_proj, v)
+  ans <- as.numeric(ans)
+  ans
 }
 
 
@@ -311,14 +388,17 @@ make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) 
                           prec_level + prec_y))
   m_level_level[is_offdiag] <- -1 * prec_level
   m_trend_trend <- diag(c(rep(prec_trend * (1 + damp^2) + prec_level, times = n - 1L),
-                          prec_trend + prec_level))
+                          prec_trend))
   m_trend_trend[is_offdiag] <- -1 * prec_trend * damp
-  m_y_level <- diag(rep(-1 * prec_level, times = n))
-  m_level_trend <- diag(rep(-1 * prec_level, times = n))
+  m_y_level <- diag(rep(-1 * prec_y, times = n))
+  m_level_trend <-  diag(c(rep(prec_level, times = n - 1L),
+                           0))
+  is_offdiag_half <- row(m_level_trend) - col(m_level_trend) == 1L
+  m_level_trend[is_offdiag_half] <- -1 * prec_level
   ## combine
-  rbind(cbind(m_y_y,     m_y_level,     m_y_trend),
+  rbind(cbind(m_y_y,  m_y_level,  m_y_trend),
         cbind(m_y_level, m_level_level, m_level_trend),
-        cbind(m_y_trend, m_level_trend, m_trend_trend))
+        cbind(m_y_trend, t(m_level_trend), m_trend_trend))
 }
 
 
@@ -403,6 +483,30 @@ make_vname_fit <- function(spec, timevar) {
 #' @export
 make_vname_fit.BayesProj_spec_ts_dampedtrend <- function(spec, timevar) {
   c(timevar, timevar, "hyper")
+}
+
+
+## 'make_vname_proj' ----------------------------------------------------------
+
+#' Derive Names of Variables to Use When Reporting on Projection
+#'
+#' Creates identifiers for a single combination of
+#' the 'by' variables
+#'
+#' @param spec Object of class 'BayesProj_spec_ts'
+#' @param timevar Name of the time variable
+#'
+#' @returns A character vector
+#'
+#' noRd
+make_vname_proj <- function(spec, timevar) {
+  UseMethod("make_vname_proj")
+}
+
+## HAS_TESTS
+#' @export
+make_vname_proj.BayesProj_spec_ts_dampedtrend <- function(spec, timevar) {
+  c(timevar, timevar, timevar, "hyper")
 }  
 
 
@@ -433,6 +537,39 @@ make_what_fit.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time) {
   trend <- rep("trend", times = n_period)
   hyper <- rep("hyper", times = 4L)
   ans <- c(level, trend, hyper)
+  ans <- factor(ans, levels = unique(ans))
+  ans
+}
+
+
+## 'make_what_proj' -----------------------------------------------------------
+
+#' Derive Identifiers for Batches of Parameters
+#' to Use When Reporting on Projection
+#'
+#' Creates identifiers for a single combination of
+#' the 'by' variables
+#'
+#' @param spec Object of class 'BayesProj_spec_ts'
+#' @param labels_time_project Vector of labels for
+#' projection periods
+#'
+#' @returns A character vector
+#'
+#' noRd
+make_what_proj <- function(spec, indvar, labels_time_project) {
+  UseMethod("make_what_proj")
+}
+
+## HAS_TESTS
+#' @export
+make_what_proj.BayesProj_spec_ts_dampedtrend <- function(spec, indvar, labels_time_project) {
+  n_period <- length(labels_time_project)
+  y <- rep(indvar, times = n_period)
+  level <- rep("level", times = n_period)
+  trend <- rep("trend", times = n_period)
+  hyper <- rep("hyper", times = 4L)
+  ans <- c(y, level, trend, hyper)
   ans <- factor(ans, levels = unique(ans))
   ans
 }  

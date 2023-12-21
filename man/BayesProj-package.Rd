@@ -4,12 +4,25 @@
 \name{BayesProj-package}
 \alias{BayesProj}
 \alias{BayesProj-package}
-\title{Project Summary Indicators for Demographic Rates
-using Bayesian Methods}
+\title{Project Demographic Indictators, using Bayesian Methods}
 \description{
-Use Bayesian methods to project demographic rates.
-The projections typically involve some expert
-judgement, expressed through benchmarks.
+Use Bayesian methods to project demographic indicators,
+possibly informed by expert judgement.
+}
+\details{
+A typical workflow:
+\enumerate{
+\item Use \code{\link[=DampedTrend]{DampedTrend()}} or \code{\link[=AR1]{AR1()}} to
+specify a time series model.
+\item Use \code{\link[=fit_ts]{fit_ts()}} to fit the model
+model to historical estimates for a
+demographic indicator.
+\item Use \code{\link[=Benchmarks]{Benchmarks()}} to capture expert judgements
+about likely future values for the indicator.
+\item Supply the outputs from \code{\link[=fit_ts]{fit_ts()}} and \code{\link[=Benchmarks]{Benchmarks()}}
+to \code{\link[=project_ts]{project_ts()}}, to project future values
+for the indicator.
+}
 }
 \author{
 \strong{Maintainer}: John Bryant \email{john@bayesiandemography.com}
