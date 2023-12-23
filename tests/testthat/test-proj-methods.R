@@ -1,5 +1,50 @@
+## 'augment' ------------------------------------------------------------------
 
-test_that("make_benchmarks_df' works with benchmarks, has by, indvar num", {
+test_that("augment' works without benchmarks", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 11:15))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  projected <- project_ts(fitted,
+                          time_labels = 6:10)
+  ans <- augment(projected)
+  expect_setequal(names(ans), c("time", "sex",
+                                ".fitted", ".lower", ".upper", ".probability"))
+  expect_identical(nrow(ans), 10L)
+})
+
+test_that("augment' works with benchmarks", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 11:15))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(sex = c("f", "m"),
+                                      time = c(10, 10),
+                                      q50 = c(20, 21),
+                                      q90 = c(23, 24)))
+  projected <- project_ts(fitted,
+                          time_labels = 6:10,
+                          spec_bench = spec_bench)
+  ans <- augment(projected)
+  expect_setequal(names(ans), c("time", "sex", ".bench.lower", ".bench.mid", ".bench.upper",
+                                ".fitted", ".lower", ".upper", ".probability"))
+  expect_identical(nrow(ans), 10L)
+})
+
+
+## 'components' ---------------------------------------------------------------
+
+test_that("components' works with benchmarks, has by, indvar num", {
   set.seed(0)
   data <- data.frame(time = rep(1:5, 2),
                      sex = rep(c("f", "m"), each = 5),
@@ -22,7 +67,7 @@ test_that("make_benchmarks_df' works with benchmarks, has by, indvar num", {
   expect_identical(nrow(ans), 10L)
 })
 
-test_that("make_benchmarks_df' works with benchmarks, has by, indvar list", {
+test_that("components' works with benchmarks, has by, indvar list", {
   set.seed(0)
   data <- data.frame(time = rep(1:5, 2),
                      sex = rep(c("f", "m"), each = 5))
@@ -43,7 +88,7 @@ test_that("make_benchmarks_df' works with benchmarks, has by, indvar list", {
   expect_true(all(sapply(ans, tibble::is_tibble)))
 })
 
-test_that("make_benchmarks_df' works with benchmarks, no by, indvar list", {
+test_that("components' works with benchmarks, no by, indvar list", {
   set.seed(0)
   data <- data.frame(time = 1:5)
   data$y <- replicate(n = 5, rnorm(5), simplify = FALSE)

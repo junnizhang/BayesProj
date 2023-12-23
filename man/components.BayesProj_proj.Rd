@@ -2,7 +2,7 @@
 % Please edit documentation in R/proj-methods.R
 \name{components.BayesProj_proj}
 \alias{components.BayesProj_proj}
-\title{Components from a Forecasted Time Series Model}
+\title{Components from a Projection}
 \usage{
 \method{components}{BayesProj_proj}(object, what = NULL, interval = 0.95, ...)
 }
@@ -32,7 +32,9 @@ from the posterior distribution.
 }
 }
 \description{
-Components from a Forecasted Time Series Model
+If the \code{log} argument to
+\code{\link[=fit_ts]{fit_ts()}} was \code{TRUE}, then all projected
+values are reported on the log scale.
 }
 \examples{
 library(tibble)
@@ -42,8 +44,8 @@ data <- tribble(~time, ~val,
                 2020,  3.5,
                 2022,  3.6)
 fitted <- fit_ts(data, indvar = "val")
-bench <- tribble(~time, ~q50, ~q90,
-                 2030,  1.8,  2.3)
+bench <- Benchmarks(tribble(~time, ~q50, ~q90,
+                            2030,  1.8,  2.3))
 projected <- project_ts(fitted = fitted,
                         time_labels = 2023:2030,
                         spec_bench = bench)
@@ -54,7 +56,7 @@ components(projected)
 \item \code{\link[=project_ts]{project_ts()}} to project a time series model
 \item \code{\link[=augment.BayesProj_proj]{augment()}}
 combines data and benchmarks.
-\item \code{\link[=n_draw<-]{n_draw()}} sets the default number
-of draws from the posterior distribution.
+\item \code{\link[=composite]{composite()}} combines estimates and projections
+in a single tibble.
 }
 }

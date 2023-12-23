@@ -1,4 +1,27 @@
 
+
+#' Try to Convert a Factor to an Integer
+#'
+#' @param x A factor
+#'
+#' @returns 
+#' If the factor can be successfully converted,
+#' return an integer vector, otherwise
+#' return the original factor
+#'
+#' @noRd
+convert_factor_to_integer <- function(x) {
+  if (!is.factor(x))
+    return(x)
+  levels <- levels(x)
+  levels_int <- suppressWarnings(as.integer(levels))
+  if (any(is.na(levels_int)) || any(levels_int != levels))
+    return(x)
+  levels_int[x]
+}
+
+
+
 ## HAS_TESTS
 #' Inverse Logit Function
 #'

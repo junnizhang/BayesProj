@@ -1,4 +1,19 @@
 
+## 'convert_factor_to_integer' ------------------------------------------------
+
+test_that("'convert_factor_to_integer' works with valid inputs", {
+  x <- factor(1:10)
+  expect_identical(convert_factor_to_integer(x), 1:10)
+})
+
+test_that("'convert_factor_to_integer' returns original vector with invalid inputs", {
+  x <- factor(c("2000-2010", "2010-2020"))
+  expect_identical(convert_factor_to_integer(x), x)
+  x <- 1:10
+  expect_identical(convert_factor_to_integer(x), x)
+})
+
+
 ## 'invlogit' -----------------------------------------------------------------
 
 test_that("'invlogit' works with valid inputs", {

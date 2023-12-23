@@ -2,7 +2,7 @@
 % Please edit documentation in R/proj-methods.R
 \name{augment.BayesProj_proj}
 \alias{augment.BayesProj_proj}
-\title{Forecasts of Indicator, Combined with Benchmarks}
+\title{Projection of Indicator, Combined with Benchmarks}
 \usage{
 \method{augment}{BayesProj_proj}(x, interval = 0.95, ...)
 }
@@ -35,6 +35,12 @@ Given output from a call to \code{\link[=project_ts]{project_ts()}},
 extract forecasts for the demographic indicator,
 merged with the benchmarks (if used).
 }
+\details{
+The values for the indicator, and for the benchmarks
+are shown in the original units, even if
+\code{log = TRUE} in the original call to
+\code{\link[=fit_ts]{fit_ts()}}.
+}
 \examples{
 library(tibble)
 data <- tribble(~time, ~val,
@@ -43,8 +49,8 @@ data <- tribble(~time, ~val,
                 2020,  3.5,
                 2022,  3.6)
 fitted <- fit_ts(data, indvar = "val")
-bench <- tribble(~time, ~q50, ~q90,
-                 2030,  1.8,  2.3)
+bench <- Benchmarks(tribble(~time, ~q50, ~q90,
+                             2030,  1.8,  2.3))
 projected <- project_ts(fitted = fitted,
                         time_labels = 2023:2030,
                         spec_bench = bench)
@@ -60,5 +66,7 @@ about plausible future values) for a forcast.
 extracts forecasts for parameters and hyper-parameter.
 \item \code{\link[=n_draw<-]{n_draw()}} sets the default number
 of draws from the posterior distribution.
+\item \code{\link[=composite]{composite()}} combines estimates and projections
+in a single tibble.
 }
 }

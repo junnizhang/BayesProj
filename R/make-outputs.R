@@ -1,5 +1,57 @@
 
 ## HAS_TESTS
+#' Express Benchmarks as Intervals
+#'
+#' Convert from mean (possibly as a list column) and sd
+#' to intervals (possibly list columns)
+#'
+#' @param benchmarks A data frame with 'by' variables and
+#' columns '.mean' and '.sd'
+#' @param interval Width of intervals
+#' @param log Whether model fitted on log scale
+#'
+#' @returns A data frame
+#'
+#' @noRd
+convert_bench_to_interval <- function(benchmarks, interval, log) {
+  mean <- benchmarks$.mean
+  sd <- benchmarks$.sd
+  z <- stats::qnorm(0.5 + 0.5 * interval)
+  if (is.list(mean)) {
+    mid <- transpose_list(mean)
+    lower <- lapply(mid, function(x) x - z * sd)
+    upper <- lapply(mid, function(x) x + z * sd)
+    if (log) {
+      lower <- lapply(lower, exp)
+      mid <- lapply(mid, exp)
+      upper <- lapply(upper, exp)
+    }
+    lower <- transpose_list(lower)
+    mid <- transpose_list(mid)
+    upper <- transpose_list(upper)
+    lower <- vapply(lower, mean, 0)
+    mid <- vapply(mid, mean, 0)
+    upper <- vapply(upper, mean, 0)
+  }
+  else {
+    lower <- mean - z * sd
+    mid <- mean
+    upper <- mean + z * sd
+    if (log) {
+      lower <- exp(lower)
+      mid <- exp(mid)
+      upper <- exp(upper)
+    }
+  }    
+  ans <- benchmarks[-match(c(".mean", ".sd"), names(benchmarks))]
+  ans$.bench.lower <- lower
+  ans$.bench.mid <- mid
+  ans$.bench.upper <- upper
+  ans
+}  
+
+
+## HAS_TESTS
 #' Draw from the Posterior Distribution for Parameters from
 #' Fitted Model - All Combinations of 'By' Variables
 #'

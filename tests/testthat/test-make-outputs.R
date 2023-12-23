@@ -1,4 +1,75 @@
 
+## 'convert_bench_to_interval' ------------------------------------------------
+
+test_that("convert_bench_to_interval' works with valid inputs - mean is numeric, log is FALSE", {
+  benchmarks <- data.frame(time = 1:5, .mean = 0.1 * (1:5), .sd = 0.1 * (5:1))
+  interval <- 0.9
+  log  <- FALSE
+  ans_obtained <- convert_bench_to_interval(benchmarks = benchmarks,
+                                            interval = interval,
+                                            log = log)
+  ans_expected <- data.frame(time = 1:5,
+                             .bench.lower = 0.1 * (1:5) - qnorm(0.95) * (0.1 * (5:1)),
+                             .bench.mid = 0.1 * (1:5),
+                             .bench.upper = 0.1 * (1:5) + qnorm(0.95) * (0.1 * (5:1)))
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("convert_bench_to_interval' works with valid inputs - mean is numeric, log is TRUE", {
+  benchmarks <- data.frame(time = 1:5, .mean = 0.1 * (1:5), .sd = 0.1 * (5:1))
+  interval <- 0.9
+  log  <- TRUE
+  ans_obtained <- convert_bench_to_interval(benchmarks = benchmarks,
+                                            interval = interval,
+                                            log = log)
+  ans_expected <- data.frame(time = 1:5,
+                             .bench.lower = exp(0.1 * (1:5) - qnorm(0.95) * (0.1 * (5:1))),
+                             .bench.mid = exp(0.1 * (1:5)),
+                             .bench.upper = exp(0.1 * (1:5) + qnorm(0.95) * (0.1 * (5:1))))
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("convert_bench_to_interval' works with valid inputs - mean is list, log is FALSE", {
+  set.seed(0)
+  benchmarks <- data.frame(time = 1:5, .mean = NA, .sd = 0.1 * (5:1))
+  benchmarks$.mean <- replicate(n = 5, rnorm(10), simplify = FALSE)
+  interval <- 0.9
+  log  <- FALSE
+  ans_obtained <- convert_bench_to_interval(benchmarks = benchmarks,
+                                            interval = interval,
+                                            log = log)
+  mean <- do.call(rbind, benchmarks$.mean)
+  lower <- rowMeans(mean - qnorm(0.95) * (0.1 * (5:1)))
+  mid <- rowMeans(mean)
+  upper <- rowMeans(mean + qnorm(0.95) * (0.1 * (5:1)))
+  ans_expected <- data.frame(time = 1:5,
+                             .bench.lower = lower,
+                             .bench.mid = mid, 
+                             .bench.upper = upper)
+  expect_equal(ans_obtained, ans_expected)
+})
+
+test_that("convert_bench_to_interval' works with valid inputs - mean is list, log is TRUE", {
+  set.seed(0)
+  benchmarks <- data.frame(time = 1:5, .mean = NA, .sd = 0.1 * (5:1))
+  benchmarks$.mean <- replicate(n = 5, rnorm(10), simplify = FALSE)
+  interval <- 0.9
+  log  <- TRUE
+  ans_obtained <- convert_bench_to_interval(benchmarks = benchmarks,
+                                            interval = interval,
+                                            log = log)
+  mean <- do.call(rbind, benchmarks$.mean)
+  lower <- rowMeans(exp(mean - qnorm(0.95) * (0.1 * (5:1))))
+  mid <- rowMeans(exp(mean))
+  upper <- rowMeans(exp(mean + qnorm(0.95) * (0.1 * (5:1))))
+  ans_expected <- data.frame(time = 1:5,
+                             .bench.lower = lower,
+                             .bench.mid = mid, 
+                             .bench.upper = upper)
+  expect_equal(ans_obtained, ans_expected)
+})
+                             
+
 ## 'draw_post_fit' ---------------------------------------------------------
 
 test_that("draw_post_fit' works with valid inputs - indvar is numeric, no by", {

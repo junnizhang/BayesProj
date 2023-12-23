@@ -10,6 +10,8 @@ make_what_proj(spec, indvar, labels_time_project)
 \arguments{
 \item{spec}{Object of class 'BayesProj_spec_ts'}
 
+\item{indvar}{Name of indicator variable}
+
 \item{labels_time_project}{Vector of labels for
 projection periods}
 }

@@ -35,8 +35,8 @@ data <- tribble(~time, ~val,
                 2020,  3.5,
                 2022,  3.6)
 fitted <- fit_ts(data, indvar = "val")
-bench <- tribble(~time, ~q50, ~q90,
-                 2030,  1.8,  2.3)
+bench <- Benchmarks(tribble(~time, ~q50, ~q90,
+                            2030,  1.8,  2.3))
 projected <- project_ts(fitted = fitted,
                         time_labels = 2023:2030,
                         spec_bench = bench)

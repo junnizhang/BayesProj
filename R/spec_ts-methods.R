@@ -551,6 +551,7 @@ make_what_fit.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time) {
 #' the 'by' variables
 #'
 #' @param spec Object of class 'BayesProj_spec_ts'
+#' @param indvar Name of indicator variable
 #' @param labels_time_project Vector of labels for
 #' projection periods
 #'
