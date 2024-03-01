@@ -53,6 +53,17 @@ fitted <- fit_ts(data,
                  byvar = "sex")
 ```
 
+
+Model using AR1
+
+```{r}
+fitted_ar <- fit_ts(data,
+                    spec_ts = AR1(),
+                    indvar = "total",
+                    byvar = "sex")
+```
+
+
 ## Project indicator without benchmarks
 
 ```{r}
@@ -73,6 +84,30 @@ ggplot(vals, aes(x = time, y = total)) +
   geom_line(col = "darkblue", 
             linewidth = 0.5)
 ```
+
+With AR1 model
+
+
+```{r}
+projected_ar <- project_ts(fitted_ar, 
+                        time_labels = 2022:2030)
+```
+
+```{r}
+vals_ar <- composite(projected_ar) |>
+  mutate(time = as.integer(time)) ## not sure why it's character  
+```
+
+```{r}
+ggplot(vals_ar, aes(x = time, y = total)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkblue", 
+            linewidth = 0.5)
+```
+
+
 
 ## Project indicator with benchmarks
 
@@ -110,6 +145,39 @@ ggplot(vals_bench, aes(x = time, y = total)) +
             linewidth = 0.5,
             alpha = 0.5)
 ```
+
+With AR model
+
+
+```{r}
+projected_bench_ar <- project_ts(fitted_ar, 
+                              spec_bench = bench,
+                              time_labels = 2022:2030)
+```
+
+```{r}
+vals_bench_ar <- composite(projected_bench_ar) |>
+  mutate(time = as.integer(time)) ## not sure why it's character  
+```
+
+```{r}
+ggplot(vals_bench_ar, aes(x = time, y = total)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkblue", 
+            linewidth = 0.5) +
+  geom_ribbon(aes(ymin = .bench.lower,
+                  ymax = .bench.upper),
+              fill = "lightblue",
+              alpha = 0.5) +
+  geom_line(aes(y = .bench.mid),
+            col = "blue",
+            linewidth = 0.5,
+            alpha = 0.5)
+```
+
+
 
 ## Model for indicator, on log scale
 

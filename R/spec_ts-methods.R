@@ -420,8 +420,17 @@ make_mean_proj.BayesProj_spec_ts_ar1 <- function(spec,
   prec_bench <- 1 / sd_bench^2 ## vector
   ## make vectors
   v_y <- mean_bench * prec_bench
-  v_level <- prec_level * c(damp * level_final + (1 - damp) * mean,
-                            rep((1 - damp) * mean, times = n - 1L))
+  v1 <- damp * level_final + (1 - damp) * mean
+  v2 <- damp * level_final + (1 - damp) * mean - damp * (1 - damp) * mean
+  v3 <- (1 - damp) * mean
+  v4 <- (1 - damp) * mean - damp * (1 - damp) * mean
+  if (n == 1L)
+    v_level <- v1
+  else if (n == 2L)
+    v_level <- c(v2, v3)
+  else
+    v_level <- rep.int(c(v2, v4, v3), times = c(1L, n - 2L, 1L))
+  v_level <- prec_level * v_level
   ## combine and return
   v <- c(v_y, v_level)
   ans <- solve(prec_proj, v)
@@ -459,7 +468,6 @@ make_parameters.BayesProj_spec_ts <- function(spec, y) {
 
 ## 'make_prec_proj' -----------------------------------------------------
 
-## NO_TESTS
 #' Precision Matrix for Benchmarked Projections
 #'
 #' Make the precision matrix for a draw from the
@@ -483,6 +491,7 @@ make_prec_proj <- function(spec, hyper, sd_bench) {
   UseMethod("make_prec_proj")
 }
 
+## HAS_TESTS
 #' @export
 make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) {
   ## extract and transform parameter estimates
@@ -498,16 +507,24 @@ make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) 
   ## make submatrices
   m_y_trend <- matrix(0, nrow = n, ncol = n)
   is_offdiag <- abs(row(m_y_trend) - col(m_y_trend)) == 1L
-  m_y_y <- diag(prec_y + prec_bench)
+  m_y_y <- diag(prec_y + prec_bench, nrow = n, ncol = n)
   m_level_level <- diag(c(rep(2 * prec_level + prec_y, times = n - 1L),
-                          prec_level + prec_y))
+                          prec_level + prec_y),
+                        nrow = n,
+                        ncol = n)
   m_level_level[is_offdiag] <- -1 * prec_level
   m_trend_trend <- diag(c(rep(prec_trend * (1 + damp^2) + prec_level, times = n - 1L),
-                          prec_trend))
+                          prec_trend),
+                        nrow = n,
+                        ncol = n)
   m_trend_trend[is_offdiag] <- -1 * prec_trend * damp
-  m_y_level <- diag(rep(-1 * prec_y, times = n))
+  m_y_level <- diag(rep(-1 * prec_y, times = n),
+                    nrow = n,
+                    ncol = n)
   m_level_trend <-  diag(c(rep(prec_level, times = n - 1L),
-                           0))
+                           0),
+                         nrow = n,
+                         ncol = n)
   is_offdiag_half <- row(m_level_trend) - col(m_level_trend) == 1L
   m_level_trend[is_offdiag_half] <- -1 * prec_level
   ## combine
@@ -516,6 +533,7 @@ make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) 
         cbind(m_y_trend, t(m_level_trend), m_trend_trend))
 }
 
+## HAS_TESTS
 #' @export
 make_prec_proj.BayesProj_spec_ts_ar1 <- function(spec, hyper, sd_bench) {
   ## extract and transform parameter estimates
@@ -527,17 +545,23 @@ make_prec_proj.BayesProj_spec_ts_ar1 <- function(spec, hyper, sd_bench) {
   prec_y <- 1 / sd_y^2            
   prec_level <- 1 / sd_level^2    
   prec_bench <- 1 / sd_bench^2 ## vector
-  ## make submatrices
-  m_y_y <- diag(prec_y + prec_bench)
+  m_y_y <- diag(prec_y + prec_bench,
+                nrow = n,
+                ncol = n)
   m_level_level <- diag(c(rep(prec_y + (1 + damp^2) * prec_level, times = n - 1L),
-                          prec_y + prec_level))
+                          prec_y + prec_level),
+                        nrow = n,
+                        ncol = n)
   is_offdiag <- abs(row(m_level_level) - col(m_level_level)) == 1L
   m_level_level[is_offdiag] <- -1 * prec_level * damp
-  m_y_level <- diag(rep(-1 * prec_y, times = n))
+  m_y_level <- diag(rep(-1 * prec_y, times = n),
+                    nrow = n,
+                    ncol = n)
   ## combine
   rbind(cbind(m_y_y,  m_y_level),
         cbind(m_y_level, m_level_level))
 }
+
 
 
 ## 'make_random' --------------------------------------------------------------

@@ -251,7 +251,7 @@ test_that("'make_level' works with ar1", {
 
 ## 'make_mean_proj', 'make_prec_proj' -----------------------------------------
 
-test_that("'make_mean_proj', 'make_prec_proj' work with damped trend, no benchmarks", {
+test_that("'make_mean_proj', 'make_prec_proj' work with damped trend, no benchmarks - n_time = 10", {
   set.seed(0)
   level_final <- 2
   trend_final <- 0.3
@@ -272,7 +272,7 @@ test_that("'make_mean_proj', 'make_prec_proj' work with damped trend, no benchma
       level[i + 1] = level[i] + trend[i] + rnorm(1, sd = sd_level)
       trend[i + 1] = damp * trend[i] + rnorm(1, sd = sd_trend)
     }
-    y <- rnorm(n = 10, mean = level, sd = sd_y)
+    y <- rnorm(n = n_time, mean = level, sd = sd_y)
     ans_direct[i_draw, , 1]  <- y
     ans_direct[i_draw, , 2]  <- level
     ans_direct[i_draw, , 3]  <- trend
@@ -300,7 +300,56 @@ test_that("'make_mean_proj', 'make_prec_proj' work with damped trend, no benchma
                tolerance = 0.05)
 })
 
-test_that("'make_mean_proj', 'make_prec_proj' work with ar1, no benchmarks", {
+test_that("'make_mean_proj', 'make_prec_proj' work with damped trend, no benchmarks - n_time = 1", {
+  set.seed(0)
+  level_final <- 2
+  trend_final <- 0.3
+  sd_y <- 0.3
+  sd_level <- 0.4
+  sd_trend <- 0.2
+  damp <- 0.9
+  n_draw <- 1000
+  n_time <- 1
+  ## simulate directly
+  ans_direct <- array(dim = c(n_draw, n_time, 3))
+  for (i_draw in seq_len(n_draw)) {
+    trend <- numeric(n_time)
+    level <- numeric(n_time)
+    level[1] <- level_final + trend_final + rnorm(1, sd = sd_level)
+    trend[1] <- damp * trend_final + rnorm(1, sd = sd_trend)
+    for (i in seq_len(n_time - 1)) {
+      level[i + 1] = level[i] + trend[i] + rnorm(1, sd = sd_level)
+      trend[i + 1] = damp * trend[i] + rnorm(1, sd = sd_trend)
+    }
+    y <- rnorm(n = n_time, mean = level, sd = sd_y)
+    ans_direct[i_draw, , 1]  <- y
+    ans_direct[i_draw, , 2]  <- level
+    ans_direct[i_draw, , 3]  <- trend
+  }
+  ## simulate via mvn draw
+  spec <- DampedTrend()
+  par_final <- c(level_final, trend_final)
+  hyper <- c(sd_y, sd_level, sd_trend, damp)
+  mean_bench <- rep(0, n_time)
+  sd_bench <- rep(Inf, n_time)
+  prec_proj <- make_prec_proj(spec = spec,
+                              hyper = hyper,
+                              sd_bench = sd_bench)
+  mean_proj <- make_mean_proj(spec = spec,
+                              par_final = par_final,
+                              hyper = hyper,
+                              mean_bench = mean_bench,
+                              sd_bench = sd_bench,
+                              prec_proj = prec_proj)
+  ans_mvn <- array(dim = c(n_draw, n_time, 3))
+  for (i_draw in seq_len(n_draw))
+    ans_mvn[i_draw, , ] <- rmvn(n = 1, mean = mean_proj, prec = prec_proj)
+  expect_equal(apply(ans_direct, 2:3, mean),
+               apply(ans_mvn, 2:3, mean),
+               tolerance = 0.05)
+})
+
+test_that("'make_mean_proj', 'make_prec_proj' work with ar1, no benchmarks - n_time = 10", {
   set.seed(0)
   level_final <- 2
   mean <- 2.5
@@ -316,7 +365,93 @@ test_that("'make_mean_proj', 'make_prec_proj' work with ar1, no benchmarks", {
     level[1] <- mean + damp * (level_final - mean) + rnorm(1, sd = sd_level)
     for (i in seq_len(n_time - 1))
       level[i + 1] = mean + damp * (level[i] - mean) + rnorm(1, sd = sd_level)
-    y <- rnorm(n = 10, mean = level, sd = sd_y)
+    y <- rnorm(n = n_time, mean = level, sd = sd_y)
+    ans_direct[i_draw, , 1]  <- y
+    ans_direct[i_draw, , 2]  <- level
+  }
+  ## simulate via mvn draw
+  spec <- AR1()
+  par_final <- level_final
+  hyper <- c(mean, sd_y, sd_level, damp)
+  mean_bench <- rep(0, n_time)
+  sd_bench <- rep(Inf, n_time)
+  prec_proj <- make_prec_proj(spec = spec,
+                              hyper = hyper,
+                              sd_bench = sd_bench)
+  mean_proj <- make_mean_proj(spec = spec,
+                              par_final = par_final,
+                              hyper = hyper,
+                              mean_bench = mean_bench,
+                              sd_bench = sd_bench,
+                              prec_proj = prec_proj)
+  ans_mvn <- array(dim = c(n_draw, n_time, 2))
+  for (i_draw in seq_len(n_draw))
+    ans_mvn[i_draw, , ] <- rmvn(n = 1, mean = mean_proj, prec = prec_proj)
+  expect_equal(apply(ans_direct, 2:3, mean),
+               apply(ans_mvn, 2:3, mean),
+               tolerance = 0.05)
+})
+
+test_that("'make_mean_proj', 'make_prec_proj' work with ar1, no benchmarks - n_time = 2", {
+  set.seed(0)
+  level_final <- 2
+  mean <- 2.5
+  sd_y <- 0.3
+  sd_level <- 0.4
+  damp <- 0.9
+  n_draw <- 1000
+  n_time <- 2
+  ## simulate directly
+  ans_direct <- array(dim = c(n_draw, n_time, 2))
+  for (i_draw in seq_len(n_draw)) {
+    level <- numeric(n_time)
+    level[1] <- mean + damp * (level_final - mean) + rnorm(1, sd = sd_level)
+    for (i in seq_len(n_time - 1))
+      level[i + 1] = mean + damp * (level[i] - mean) + rnorm(1, sd = sd_level)
+    y <- rnorm(n = n_time, mean = level, sd = sd_y)
+    ans_direct[i_draw, , 1]  <- y
+    ans_direct[i_draw, , 2]  <- level
+  }
+  ## simulate via mvn draw
+  spec <- AR1()
+  par_final <- level_final
+  hyper <- c(mean, sd_y, sd_level, damp)
+  mean_bench <- rep(0, n_time)
+  sd_bench <- rep(Inf, n_time)
+  prec_proj <- make_prec_proj(spec = spec,
+                              hyper = hyper,
+                              sd_bench = sd_bench)
+  mean_proj <- make_mean_proj(spec = spec,
+                              par_final = par_final,
+                              hyper = hyper,
+                              mean_bench = mean_bench,
+                              sd_bench = sd_bench,
+                              prec_proj = prec_proj)
+  ans_mvn <- array(dim = c(n_draw, n_time, 2))
+  for (i_draw in seq_len(n_draw))
+    ans_mvn[i_draw, , ] <- rmvn(n = 1, mean = mean_proj, prec = prec_proj)
+  expect_equal(apply(ans_direct, 2:3, mean),
+               apply(ans_mvn, 2:3, mean),
+               tolerance = 0.05)
+})
+
+test_that("'make_mean_proj', 'make_prec_proj' work with ar1, no benchmarks - n_time = 1", {
+  set.seed(0)
+  level_final <- 2
+  mean <- 2.5
+  sd_y <- 0.3
+  sd_level <- 0.4
+  damp <- 0.9
+  n_draw <- 1000
+  n_time <- 1
+  ## simulate directly
+  ans_direct <- array(dim = c(n_draw, n_time, 2))
+  for (i_draw in seq_len(n_draw)) {
+    level <- numeric(n_time)
+    level[1] <- mean + damp * (level_final - mean) + rnorm(1, sd = sd_level)
+    for (i in seq_len(n_time - 1))
+      level[i + 1] = mean + damp * (level[i] - mean) + rnorm(1, sd = sd_level)
+    y <- rnorm(n = n_time, mean = level, sd = sd_y)
     ans_direct[i_draw, , 1]  <- y
     ans_direct[i_draw, , 2]  <- level
   }
