@@ -23,7 +23,7 @@ draw_post_fit_one <- function(spec, mean, prec, n_draw) {
 
 ## HAS_TESTS
 #' @export
-draw_post_fit_one.BayesProj_spec_ts <- function(spec, mean, prec, n_draw) {
+draw_post_fit_one.BayesProj_spec_ts_dampedtrend <- function(spec, mean, prec, n_draw) {
   damp_min <- spec$damp_min
   damp_max <- spec$damp_max
   n_period <- length(mean$level)
@@ -34,6 +34,24 @@ draw_post_fit_one.BayesProj_spec_ts <- function(spec, mean, prec, n_draw) {
   ans <- t(ans)
   i_sd <- (2L * n_period) + (1:3)
   i_damp <- (2L * n_period) + 4L
+  ans[i_sd, ] <- exp(ans[i_sd, ])
+  ans[i_damp, ] <- damp_min + (damp_max - damp_min) * invlogit(ans[i_damp, ])
+  ans
+}
+
+## HAS_TESTS
+#' @export
+draw_post_fit_one.BayesProj_spec_ts_ar1 <- function(spec, mean, prec, n_draw) {
+  damp_min <- spec$damp_min
+  damp_max <- spec$damp_max
+  n_period <- length(mean$level)
+  mean <- unlist(mean)
+  ans <- rmvn(n = n_draw,
+              mean = mean,
+              prec = prec)
+  ans <- t(ans)
+  i_sd <- n_period + (2:3)
+  i_damp <- n_period + 4L
   ans[i_sd, ] <- exp(ans[i_sd, ])
   ans[i_damp, ] <- damp_min + (damp_max - damp_min) * invlogit(ans[i_damp, ])
   ans
@@ -84,6 +102,20 @@ get_par_final.BayesProj_spec_ts_dampedtrend <- function(spec_ts,
 }
 
 
+## HAS_TESTS
+#' @export
+get_par_final.BayesProj_spec_ts_ar1 <- function(spec_ts,
+                                                draws_post,
+                                                timevar,
+                                                byvar) {
+  level <- draws_post$level
+  is_final_level <- level[[timevar]] == max(level[[timevar]])
+  ans <- level[is_final_level, c(byvar, ".probability"), drop = FALSE]
+  names(ans)[[length(ans)]] <- ".par_final"
+  ans
+}
+
+
 ## 'make_class_spec' ----------------------------------------------------------
 
 #' Make 'class_spec' String
@@ -102,6 +134,10 @@ make_class_spec <- function(spec) {
 ## HAS_TESTS
 #' @export
 make_class_spec.BayesProj_spec_ts_dampedtrend <- function(spec) "dampedtrend"
+
+## HAS_TESTS
+#' @export
+make_class_spec.BayesProj_spec_ts_ar1 <- function(spec) "ar1"
 
 
 ## 'make_consts' --------------------------------------------------------------
@@ -149,6 +185,29 @@ make_consts.BayesProj_spec_ts_dampedtrend <- function(spec, y) {
 }
 
 
+## HAS_TESTS
+#' @export
+make_consts.BayesProj_spec_ts_ar1 <- function(spec, y) {
+  mult_mean <- 10 
+  mult <- 0.05
+  scale_sd_y <- spec$scale_sd_y
+  scale_sd_level <- spec$scale_sd_level
+  damp_min <- spec$damp_min
+  damp_max <- spec$damp_max
+  y_mean_abs <- mean(abs(y), na.rm = TRUE)
+  scale_mean <- mult_mean * y_mean_abs
+  if (is.null(scale_sd_y))
+    scale_sd_y <- mult * y_mean_abs
+  if (is.null(scale_sd_level))
+    scale_sd_level <- mult * y_mean_abs
+  c(scale_mean = scale_mean,
+    scale_sd_y = scale_sd_y,
+    scale_sd_level = scale_sd_level,
+    damp_min = damp_min,
+    damp_max = damp_max)
+}
+
+
 ## 'make_hyper' ---------------------------------------------------------------
 
 #' Derive Values for 'hyper' Argument used with TMB
@@ -169,6 +228,15 @@ make_hyper.BayesProj_spec_ts_dampedtrend <- function(spec) {
   c(log_sd_y = 0,
     log_sd_level = 0,
     log_sd_trend = 0,
+    logit_damp = 0)
+}
+
+## HAS_TESTS
+#' @export
+make_hyper.BayesProj_spec_ts_ar1 <- function(spec) {
+  c(mean = 0,
+    log_sd_y = 0,
+    log_sd_level = 0,
     logit_damp = 0)
 }
 
@@ -200,6 +268,14 @@ make_labels_fit.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time) {
   c(level, trend, hyper)
 }
 
+## HAS_TESTS
+#' @export
+make_labels_fit.BayesProj_spec_ts_ar1 <- function(spec, labels_time) {
+  level <- labels_time
+  hyper <- c("mean", "sd_obs", "sd_level", "damp")
+  c(level, hyper)
+}
+
 
 ## 'make_labels_proj' ---------------------------------------------------------
 
@@ -226,6 +302,15 @@ make_labels_proj.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time_pro
   trend <- labels_time_project
   hyper <- c("sd_obs", "sd_level", "sd_trend", "damp")
   c(y, level, trend, hyper)
+}
+
+## HAS_TESTS
+#' @export
+make_labels_proj.BayesProj_spec_ts_ar1 <- function(spec, labels_time_project) {
+  y <- labels_time_project
+  level <- labels_time_project
+  hyper <- c("mean", "sd_obs", "sd_level", "damp")
+  c(y, level, hyper)
 }  
 
 
@@ -282,6 +367,7 @@ make_mean_proj <- function(spec, par_final, hyper, mean_bench, sd_bench, prec_pr
   UseMethod("make_mean_proj")
 }
 
+## HAS_TESTS
 #' @export
 make_mean_proj.BayesProj_spec_ts_dampedtrend <- function(spec,
                                                          par_final,
@@ -309,6 +395,35 @@ make_mean_proj.BayesProj_spec_ts_dampedtrend <- function(spec,
                rep.int(0, times = n - 1L))
   ## combine and return
   v <- c(v_y, v_level, v_trend)
+  ans <- solve(prec_proj, v)
+  ans <- as.numeric(ans)
+  ans
+}
+
+## HAS_TESTS
+#' @export
+make_mean_proj.BayesProj_spec_ts_ar1 <- function(spec,
+                                                 par_final,
+                                                 hyper,
+                                                 mean_bench,
+                                                 sd_bench,
+                                                 prec_proj) {
+  ## extract and transform parameter estimates
+  level_final <- par_final[[1L]]
+  mean <- hyper[[1L]]
+  sd_y <- hyper[[2L]]
+  sd_level <- hyper[[3L]]
+  damp <- hyper[[4L]]
+  n <- length(mean_bench)
+  prec_y <- 1 / sd_y^2            
+  prec_level <- 1 / sd_level^2    
+  prec_bench <- 1 / sd_bench^2 ## vector
+  ## make vectors
+  v_y <- mean_bench * prec_bench
+  v_level <- prec_level * c(damp * level_final + (1 - damp) * mean,
+                            rep((1 - damp) * mean, times = n - 1L))
+  ## combine and return
+  v <- c(v_y, v_level)
   ans <- solve(prec_proj, v)
   ans <- as.numeric(ans)
   ans
@@ -401,6 +516,29 @@ make_prec_proj.BayesProj_spec_ts_dampedtrend <- function(spec, hyper, sd_bench) 
         cbind(m_y_trend, t(m_level_trend), m_trend_trend))
 }
 
+#' @export
+make_prec_proj.BayesProj_spec_ts_ar1 <- function(spec, hyper, sd_bench) {
+  ## extract and transform parameter estimates
+  mean <- hyper[[1L]]
+  sd_y <- hyper[[2L]]
+  sd_level <- hyper[[3L]]
+  damp <- hyper[[4L]]
+  n <- length(sd_bench)
+  prec_y <- 1 / sd_y^2            
+  prec_level <- 1 / sd_level^2    
+  prec_bench <- 1 / sd_bench^2 ## vector
+  ## make submatrices
+  m_y_y <- diag(prec_y + prec_bench)
+  m_level_level <- diag(c(rep(prec_y + (1 + damp^2) * prec_level, times = n - 1L),
+                          prec_y + prec_level))
+  is_offdiag <- abs(row(m_level_level) - col(m_level_level)) == 1L
+  m_level_level[is_offdiag] <- -1 * prec_level * damp
+  m_y_level <- diag(rep(-1 * prec_y, times = n))
+  ## combine
+  rbind(cbind(m_y_y,  m_y_level),
+        cbind(m_y_level, m_level_level))
+}
+
 
 ## 'make_random' --------------------------------------------------------------
 
@@ -420,21 +558,10 @@ make_random <- function(spec) {
 make_random.BayesProj_spec_ts_dampedtrend <- function(spec)
   c("level", "trend")
 
-
-## 'make_transforms_hyper' ----------------------------------------------------
-
-#' Functions to Transform Hyper-Parameters to Natural Units
-#'
-#' @param spec An object of class "BayesProj_spec_ts"
-#' @param y A vector containing observed values
-#' for the variable being modelled. 
-#'
-#' @returns A named numeric vector
-#'
-#' @noRd
-make_trend <- function(spec) {
-  UseMethod("make_trend")
-}
+## HAS_TESTS
+#' @export
+make_random.BayesProj_spec_ts_ar1 <- function(spec)
+  "level"
 
 
 ## 'make_trend' ---------------------------------------------------------------
@@ -461,6 +588,12 @@ make_trend.BayesProj_spec_ts_dampedtrend <- function(spec, y) {
   ans
 }
 
+## HAS_TESTS
+#' @export
+make_trend.BayesProj_spec_ts_ar1 <- function(spec, y) {
+  numeric()
+}
+
 
 ## 'make_vname_fit' -----------------------------------------------------------
 
@@ -485,6 +618,12 @@ make_vname_fit.BayesProj_spec_ts_dampedtrend <- function(spec, timevar) {
   c(timevar, timevar, "hyper")
 }
 
+## HAS_TESTS
+#' @export
+make_vname_fit.BayesProj_spec_ts_ar1 <- function(spec, timevar) {
+  c(timevar, "hyper")
+}
+
 
 ## 'make_vname_proj' ----------------------------------------------------------
 
@@ -507,6 +646,12 @@ make_vname_proj <- function(spec, timevar) {
 #' @export
 make_vname_proj.BayesProj_spec_ts_dampedtrend <- function(spec, timevar) {
   c(timevar, timevar, timevar, "hyper")
+}
+
+## HAS_TESTS
+#' @export
+make_vname_proj.BayesProj_spec_ts_ar1 <- function(spec, timevar) {
+  c(timevar, timevar, "hyper")
 }  
 
 
@@ -537,6 +682,17 @@ make_what_fit.BayesProj_spec_ts_dampedtrend <- function(spec, labels_time) {
   trend <- rep("trend", times = n_period)
   hyper <- rep("hyper", times = 4L)
   ans <- c(level, trend, hyper)
+  ans <- factor(ans, levels = unique(ans))
+  ans
+}
+
+## HAS_TESTS
+#' @export
+make_what_fit.BayesProj_spec_ts_ar1 <- function(spec, labels_time) {
+  n_period <- length(labels_time)
+  level <- rep("level", times = n_period)
+  hyper <- rep("hyper", times = 4L)
+  ans <- c(level, hyper)
   ans <- factor(ans, levels = unique(ans))
   ans
 }
@@ -573,4 +729,36 @@ make_what_proj.BayesProj_spec_ts_dampedtrend <- function(spec, indvar, labels_ti
   ans <- c(y, level, trend, hyper)
   ans <- factor(ans, levels = unique(ans))
   ans
+}
+
+## HAS_TESTS
+#' @export
+make_what_proj.BayesProj_spec_ts_ar1 <- function(spec, indvar, labels_time_project) {
+  n_period <- length(labels_time_project)
+  y <- rep(indvar, times = n_period)
+  level <- rep("level", times = n_period)
+  hyper <- rep("hyper", times = 4L)
+  ans <- c(y, level, hyper)
+  ans <- factor(ans, levels = unique(ans))
+  ans
 }  
+
+
+## 'print' --------------------------------------------------------------------
+
+#' @export
+print.BayesProj_spec_ts <- function(x, ...) {
+    nchar_offset <- 15
+    cat("< Object of class \"", class(x)[[1L]], "\" >\n", sep = "")
+    scale_obs <- x$scale_sd_y
+    scale_level <- x$scale_sd_level
+    if (is.null(scale_obs))
+      scale_obs <- "NULL"
+    if (is.null(scale_level))
+      scale_level <- "NULL"
+    cat(sprintf("% *s: %s\n", nchar_offset, "scale_obs", scale_obs))
+    cat(sprintf("% *s: %s\n", nchar_offset, "scale_level", scale_level))
+    cat(sprintf("% *s: %s\n", nchar_offset, "damp_min", x$damp_min))
+    cat(sprintf("% *s: %s\n", nchar_offset, "damp_max", x$damp_max))
+}
+

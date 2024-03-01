@@ -126,6 +126,23 @@ test_that("draw_post_fit' works with valid inputs - indvar is list, has by", {
 })
 
 
+test_that("draw_post_fit' works with valid inputs - indvar is list, has by - AR1", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, times = 2),
+                     sex = rep(c("f", "m"), each = 5))
+  data$y <- replicate(n = 10, rnorm(5), simplify = FALSE)
+  fit <- fit_ts(data,
+                indvar = "y",
+                byvar = "sex",
+                spec_ts = AR1())
+  ans <- draw_post_fit(fit)
+  expect_setequal(names(ans), c("level", "hyper"))
+  expect_true(is.data.frame(ans$level))
+  expect_identical(names(ans$level)[[1L]], "sex")
+})
+
+
+
 ## 'draw_post_fit_by' ---------------------------------------------------------
 
 test_that("draw_post_fit_by' works with valid inputs - indvar is numeric ", {
@@ -168,6 +185,27 @@ test_that("draw_post_fit_by' works with valid inputs - indvar is list ", {
   expect_setequal(names(ans), c("level", "trend", "hyper"))
   expect_identical(names(ans$level)[[1L]], "time")
   expect_identical(names(ans$trend)[[1L]], "time")
+  expect_identical(names(ans$hyper)[[1L]], "hyper")
+})
+
+test_that("draw_post_fit_by' works with valid inputs - indvar is list - AR1", {
+  set.seed(0)
+  data <- data.frame(time = 1:5)
+  data$y <- replicate(n = 5, rnorm(10), simplify = FALSE)
+  inputs <- prepare_inputs_fit(data = data,
+                               indvar = "y",
+                               timevar = "time",
+                               byvar = character(),
+                               log = FALSE)
+  spec <- AR1()
+  fitted <- make_fitted(inputs = inputs, spec = spec)
+  ans <- draw_post_fit_by(fitted_by = fitted[[1]],
+                          spec = spec,
+                          n_draw = 10L,
+                          timevar = "time",
+                          labels_time = 1:5)
+  expect_setequal(names(ans), c("level", "hyper"))
+  expect_identical(names(ans$level)[[1L]], "time")
   expect_identical(names(ans$hyper)[[1L]], "hyper")
 })
 
@@ -221,6 +259,53 @@ test_that("draw_post_proj' works with damped trend, has by, bench", {
   expect_true(all(sapply(ans[1:3], nrow) == 2 * 5))
 })
 
+test_that("draw_post_proj' works with ar1, no by, no bench", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   spec_ts = AR1())
+  n_draw(fitted) <- 5
+  projected <- project_ts(fitted, time_labels = 6:10)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:2], nrow) == 5))
+})
+
+test_that("draw_post_proj' works with ar1, no by, has bench", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   spec_ts = AR1())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 10, q90 = 12))
+  projected <- project_ts(fitted, time_labels = 6:10, spec_bench = spec_bench)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:2], nrow) == 5))
+})
+
+test_that("draw_post_proj' works with ar1, has by, bench", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 1:10))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = AR1())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(time = 10, q50 = 10, q90 = 12))
+  projected <- project_ts(fitted, time_labels = 6:10, spec_bench = spec_bench)
+  ans <- draw_post_proj(projected)
+  expect_identical(names(ans), c("y", "level", "hyper"))
+  expect_true(all(sapply(ans, is.data.frame)))
+  expect_true(all(sapply(ans[1:2], nrow) == 2 * 5))
+})
+
 
 ## 'draw_post_proj_by' --------------------------------------------------------
 
@@ -243,6 +328,29 @@ test_that("draw_post_proj' works with damped trend", {
                            indvar = indvar,
                            timevar = timevar)
   expect_identical(names(ans), c("y", "level", "trend", "hyper"))
+  expect_identical(nrow(ans$level), length(benchmarks[[1]]$mean))
+  expect_identical(length(ans$level$.probability[[1]]), length(par_final))
+})
+
+test_that("draw_post_proj' works with ar1", {
+  spec_ts <- AR1()
+  par_final <- list(1:2, 2:3)
+  hyper <- list(1:4, 2:5)
+  benchmarks <- list(list(mean = 1:4, sd = c(0.2, 0.3, 0.4, 0.5)),
+                     list(mean = 0:3, sd = c(0.25, 0.35, 0.45, 0.55)))
+  n_draw <- 2L
+  labels_time_project <- 2001:2004
+  indvar <- "y"
+  timevar <- "time"
+  ans <- draw_post_proj_by(spec_ts = spec_ts,
+                           par_final = par_final,
+                           hyper = hyper,
+                           benchmarks = benchmarks,
+                           n_draw = n_draw,
+                           labels_time_project = labels_time_project,
+                           indvar = indvar,
+                           timevar = timevar)
+  expect_identical(names(ans), c("y", "level", "hyper"))
   expect_identical(nrow(ans$level), length(benchmarks[[1]]$mean))
   expect_identical(length(ans$level$.probability[[1]]), length(par_final))
 })
@@ -275,6 +383,43 @@ test_that("get_hyper' works with damped trend, has by", {
                 indvar = "y",
                 byvar = "sex",
                 spec_ts = DampedTrend())
+  n_draw(fit) <- 5
+  draws <- draw_post_fit(fit)
+  ans_obtained <- get_hyper(draws = draws, byvar = fit$byvar)
+  ans_expected <- data.frame(sex = c("f", "m"))
+  hyper1 <- matrix(unlist(draws$hyper$.probability[1:4]), nr = 5)
+  hyper2 <- matrix(unlist(draws$hyper$.probability[5:8]), nr = 5)
+  hyper1 <- lapply(1:5, function(i) hyper1[i,])
+  hyper2 <- lapply(1:5, function(i) hyper2[i,])
+  ans_expected$.hyper <- list(hyper1, hyper2)
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("get_hyper' works with ar1, no by", {
+  set.seed(0)
+  data <- data.frame(time = 1:5, y = rnorm(5, mean = 1:5))
+  fit <- fit_ts(data,
+                indvar = "y",
+                spec_ts = AR1())
+  n_draw(fit) <- 5
+  draws <- draw_post_fit(fit)
+  ans_obtained <- get_hyper(draws = draws, byvar = fit$byvar)
+  ans_expected <- data.frame(.hyper = NA)
+  hyper <- matrix(unlist(draws$hyper$.probability), nr = 5)
+  hyper <- lapply(1:5, function(i) hyper[i,])
+  ans_expected$.hyper <- list(hyper)
+  expect_identical(ans_obtained, ans_expected)
+})
+
+test_that("get_hyper' works with ar1, has by", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 1:10))
+  fit <- fit_ts(data,
+                indvar = "y",
+                byvar = "sex",
+                spec_ts = AR1())
   n_draw(fit) <- 5
   draws <- draw_post_fit(fit)
   ans_obtained <- get_hyper(draws = draws, byvar = fit$byvar)
@@ -329,6 +474,29 @@ test_that("make_benchmarks_df' works with benchmarks, has by, indvar num", {
   expect_identical(nrow(ans), 10L)
 })
 
+test_that("make_benchmarks_df' works with benchmarks, has by, indvar num - AR1", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 11:15))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = AR1())
+  n_draw(fitted) <- 5
+  spec_bench <- Benchmarks(data.frame(sex = c("f", "m"),
+                                      time = c(10, 10),
+                                      q50 = c(20, 21),
+                                      q90 = c(23, 24)))
+  projected <- project_ts(fitted,
+                          time_labels = 6:10,
+                          spec_bench = spec_bench)
+  ans <- make_benchmarks_df(projected)
+  expect_true(is.data.frame(ans))
+  expect_identical(names(ans), c("sex", "time", ".mean", ".sd"))
+  expect_identical(nrow(ans), 10L)
+})
+
 test_that("make_benchmarks_df' works with benchmarks, has by, indvar list", {
   set.seed(0)
   data <- data.frame(time = rep(1:5, 2),
@@ -369,9 +537,6 @@ test_that("make_benchmarks_df' works with benchmarks, no by, indvar list", {
   expect_identical(names(ans), c("time", ".mean", ".sd"))
   expect_identical(nrow(ans), 5L)
 })
-
-
-    
 
 
 ## 'make_credible_intervals' --------------------------------------------------

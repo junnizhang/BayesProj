@@ -35,7 +35,7 @@ Specify a "damped linear trend" time series model.
 \section{Mathematical details}{
 
 
-The damped linear trend time model has the form
+The damped linear trend time series model has the form
 
 \deqn{y_t = \alpha_t + \xi_t}
 
