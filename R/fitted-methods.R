@@ -144,7 +144,7 @@ components.BayesProj_fitted <- function(object,
 ## HAS_TESTS
 #' @importFrom BayesRates n_draw
 #' @export
-n_draw.BayesProj_fitted <- function(x, value) {
+n_draw.BayesProj_fitted <- function(x) {
   x$n_draw
 }
 

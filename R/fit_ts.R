@@ -106,6 +106,8 @@ fit_ts <- function(data,
   ## fit model
   fitted <- make_fitted(inputs = inputs,
 			spec_ts = spec_ts)
+  ## make seed
+  seed_draws_fit <- sample.int(n = .Machine$integer.max, size = 1L)
   ## assemble results
   by <- inputs[["key"]]
   labels_time <- levels(data[[timevar]])
@@ -117,7 +119,8 @@ fit_ts <- function(data,
                        fitted = fitted,
                        by = by,
                        labels_time = labels_time,
-                       log = log)
+                       log = log,
+                       seed_draws_fit = seed_draws_fit)
 }
 
 

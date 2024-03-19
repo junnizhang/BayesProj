@@ -27,6 +27,18 @@ test_that("'augment' works when 'log' is TRUE", {
   expect_true(all(unlist(ans$.probability) > 0))
 })
 
+test_that("'components' gives identical answer when called twice", {
+  set.seed(0)
+  data <- expand.grid(time = 2001:2010, sex = c("F", "M"), region = c("A", "B"))
+  data$y <- replicate(n = nrow(data), list(rnorm(5)))
+  fit <- fit_ts(data = data,
+                indvar = "y",
+                byvar = c("sex", "region"))
+  ans0 <- augment(fit)
+  ans1 <- augment(fit)
+  expect_identical(ans0, ans1)
+})
+
 
 ## 'components' method for 'BayesProj_fitted' ---------------------------------
 
@@ -59,6 +71,18 @@ test_that("'components' throws correct error with invalid 'what'", {
                 byvar = c("sex", "region"))
   expect_error(components(fit, what = c("level", "wrong")),
                "Invalid value for 'what' : valid choices are 'level', 'trend', 'hyper'")
+})
+
+test_that("'components' gives identical answer when called twice", {
+  set.seed(0)
+  data <- expand.grid(time = 2001:2010, sex = c("F", "M"), region = c("A", "B"))
+  data$y <- rnorm(n = nrow(data))
+  fit <- fit_ts(data = data,
+                indvar = "y",
+                byvar = c("sex", "region"))
+  ans0 <- components(fit)
+  ans1 <- components(fit)
+  expect_identical(ans0, ans1)
 })
 
 

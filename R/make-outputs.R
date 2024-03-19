@@ -68,12 +68,16 @@ draw_post_fit <- function(x) {
   by <- x$by
   labels_time <- x$labels_time
   n_draw <- x$n_draw
+  seed_draws_fit <- x$seed_draws_fit
+  seed_restore <- sample.int(n = .Machine$integer.max, size = 1L) ## create random seed
+  set.seed(seed_draws_fit) ## set pre-determined seed
   ans <- lapply(fitted,
                 draw_post_fit_by,
                 spec = spec,
                 n_draw = n_draw,
                 timevar = timevar,
                 labels_time = labels_time)
+  set.seed(seed_restore) ## restore randomness
   nrows <- vapply(ans[[1L]], nrow, 1L)
   rbind_list_elements <- function(x, y)
     .mapply(rbind, dots = list(x, y), MoreArgs = list())
@@ -163,6 +167,7 @@ draw_post_proj <- function(x) {
   n_draw <- x$n_draw
   labels_time_project <- x$labels_time_project
   benchmarks <- x$benchmarks
+  seed_draws_proj <- x$seed_draws_proj
   draws_post_fitted <- draw_post_fit(x)
   par_final <- get_par_final(spec_ts = spec_ts,
                              draws_post = draws_post_fitted,
@@ -178,6 +183,8 @@ draw_post_proj <- function(x) {
   par_final <- inputs$.par_final
   hyper <- inputs$.hyper
   benchmarks <- inputs$.benchmarks
+  seed_restore <- sample.int(n = .Machine$integer.max, size = 1L) ## create random seed
+  set.seed(seed_draws_proj) ## set pre-determined seed
   ans <-  .mapply(draw_post_proj_by,
                   dots = list(par_final = par_final,
                               hyper = hyper,
@@ -187,6 +194,7 @@ draw_post_proj <- function(x) {
                                   labels_time_project = labels_time_project,
                                   indvar = indvar,
                                   timevar = timevar))
+  set.seed(seed_restore) ## restore randomness
   nrows <- vapply(ans[[1L]], nrow, 1L)
   rbind_list_elements <- function(x, y)
     .mapply(rbind, dots = list(x, y), MoreArgs = list())

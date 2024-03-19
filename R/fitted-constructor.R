@@ -8,7 +8,8 @@ new_BayesProj_fitted <- function(data,
                                  fitted,
                                  by,
                                  labels_time,
-                                 log) {
+                                 log,
+                                 seed_draws_fit) {
   n_draw <- length(fitted[[1L]])
   if (identical(n_draw, 1L))
     n_draw <- 1000L
@@ -21,7 +22,8 @@ new_BayesProj_fitted <- function(data,
               by = by,
               labels_time = labels_time,
               log = log,
-              n_draw = n_draw)
+              n_draw = n_draw,
+              seed_draws_fit = seed_draws_fit)
   class(ans) <- "BayesProj_fitted"
   ans
 }

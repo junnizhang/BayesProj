@@ -13,7 +13,9 @@ new_BayesProj_proj <- function(data,
                                n_draw = n_draw,
                                labels_time_project,
                                benchmarks,
-                               method_spline) {
+                               method_spline,
+                               seed_draws_fit,
+                               seed_draws_proj) {
   ans <- list(data = data,
               indvar = indvar,
               timevar = timevar,
@@ -26,7 +28,9 @@ new_BayesProj_proj <- function(data,
               n_draw = n_draw,
               labels_time_project = labels_time_project,
               benchmarks = benchmarks,
-              method_spline = method_spline)
+              method_spline = method_spline,
+              seed_draws_fit = seed_draws_fit,
+              seed_draws_proj = seed_draws_proj)
   class(ans) <- "BayesProj_proj"
   ans
 }
