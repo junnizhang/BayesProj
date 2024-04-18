@@ -22,6 +22,7 @@ LazyData: true
 Depends:
     R (>= 3.5.0)
 Imports:
+    BayesRates,
     checkmate,
     generics,
     matrixStats,
