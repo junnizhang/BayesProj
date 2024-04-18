@@ -76,6 +76,7 @@ Type objective_function<Type>::operator() ()
 
     // extract values
 
+    Type mean_obs = y.sum() / y.size();
     Type scale_mean = consts[0];
     Type scale_sd_y = consts[1];
     Type scale_sd_level = consts[2];
@@ -95,7 +96,7 @@ Type objective_function<Type>::operator() ()
     
     // contributions to negative log posterior
 
-    ans -= dnorm(mean, Type(0), scale_mean, true);
+    ans -= dnorm(mean, mean_obs, scale_mean, true);
     ans -= dnorm(sd_y, Type(0), scale_sd_y, true) + log_sd_y;
     ans -= dnorm(sd_level, Type(0), scale_sd_level, true) + log_sd_level;
     ans -= dbeta(damp_raw, Type(2), Type(2), true) + log(damp_raw) + log(1 - damp_raw);

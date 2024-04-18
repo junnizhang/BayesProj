@@ -82,8 +82,14 @@ get_par_final.BayesProj_spec_ts_dampedtrend <- function(spec_ts,
                                                         byvar) {
   level <- draws_post$level
   trend <- draws_post$trend
-  is_final_level <- level[[timevar]] == max(level[[timevar]])
-  is_final_trend <- trend[[timevar]] == max(trend[[timevar]])
+  val_timevar_level <- level[[timevar]]
+  val_timevar_trend <- trend[[timevar]]
+  if (!is.numeric(val_timevar_level))
+    val_timevar_level <- as.numeric(as.character(val_timevar_level))
+  if (!is.numeric(val_timevar_trend))
+    val_timevar_trend <- as.numeric(as.character(val_timevar_trend))
+  is_final_level <- val_timevar_level == max(val_timevar_level)
+  is_final_trend <- val_timevar_trend == max(val_timevar_trend)
   level <- level[is_final_level, c(byvar, ".probability"), drop = FALSE]
   trend <- trend[is_final_trend, c(byvar, ".probability"), drop = FALSE]
   ans <- merge(level, trend, by = byvar)
@@ -109,7 +115,12 @@ get_par_final.BayesProj_spec_ts_ar1 <- function(spec_ts,
                                                 timevar,
                                                 byvar) {
   level <- draws_post$level
-  is_final_level <- level[[timevar]] == max(level[[timevar]])
+  val_timevar <- level[[timevar]]
+  if (!is.numeric(val_timevar))
+    val_timevar <- as.numeric(as.character(val_timevar))
+  if (any(is.na(val_timevar)))
+    stop("Internal error: Missing value for time variable.")
+  is_final_level <- val_timevar == max(val_timevar)
   ans <- level[is_final_level, c(byvar, ".probability"), drop = FALSE]
   names(ans)[[length(ans)]] <- ".par_final"
   ans

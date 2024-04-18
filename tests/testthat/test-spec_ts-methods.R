@@ -116,7 +116,6 @@ test_that("get_par_final works with ar1, has 'by'", {
   ans_expected <- draws_post$level[c(5,10),-2]
   names(ans_expected)[length(ans_expected)] <- ".par_final"
   expect_identical(ans_obtained, ans_expected)
-  expect_identical(ans_obtained, ans_expected)
 })
 
     

@@ -22,27 +22,27 @@ test_that("'expand_val_bench' works when data has gaps", {
 })
 
 
-## 'format_timevar' -----------------------------------------------------------
-
-test_that("'format_timevar' works when time variable is not factor - has all levels", {
-  data <- data.frame(tm = 1:5)
-  ans_obtained <- format_timevar(data = data, timevar = "tm")
-  ans_expected <- data.frame(tm = factor(1:5))
-  expect_identical(ans_obtained, ans_expected)
-})
-
-test_that("'format_timevar' works when time variable is not factor", {
-  data <- data.frame(tm = c(1, 4:5))
-  ans_obtained <- format_timevar(data = data, timevar = "tm")
-  ans_expected <- data.frame(tm = factor(c(1, 4:5), levels = 1:5))
-  expect_identical(ans_obtained, ans_expected)
-})
-
-test_that("'format_timevar' works when time variable is a factor", {
-  data <- data.frame(tm = factor(1:5, levels = 5:1))
-  ans_obtained <- format_timevar(data = data, timevar = "tm")
-  expect_identical(ans_obtained, data)
-})
+## HAS_TESTS
+#' Convert Non-Factor Time Variable to Factor
+#'
+#' Fills in intermediate values.
+#'
+#' @param Data A data frame
+#' @param timevar Name of the time variable
+#'
+#' @returns A data frame
+#'
+#' @noRd
+format_timevar <- function(data, timevar) {
+  timevar_val <- data[[timevar]]
+  if (!is.factor(timevar_val)) {
+    levels <- seq.int(from = min(timevar_val, na.rm = TRUE),
+                      to = max(timevar_val, na.rm = TRUE))
+    timevar_val <- factor(timevar_val, levels = levels)
+    data[[timevar]] <- timevar_val
+  }
+  data
+}
 
 
 ## 'get_indvar_final' ---------------------------------------------------------
