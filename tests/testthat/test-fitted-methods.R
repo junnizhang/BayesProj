@@ -27,6 +27,18 @@ test_that("'augment' works when 'log' is TRUE", {
   expect_true(all(unlist(ans$.probability) > 0))
 })
 
+test_that("'components' gives identical answer when called twice", {
+  set.seed(0)
+  data <- expand.grid(time = 2001:2010, sex = c("F", "M"), region = c("A", "B"))
+  data$y <- replicate(n = nrow(data), list(rnorm(5)))
+  fit <- fit_ts(data = data,
+                indvar = "y",
+                byvar = c("sex", "region"))
+  ans0 <- augment(fit)
+  ans1 <- augment(fit)
+  expect_identical(ans0, ans1)
+})
+
 
 ## 'components' method for 'BayesProj_fitted' ---------------------------------
 
@@ -61,17 +73,45 @@ test_that("'components' throws correct error with invalid 'what'", {
                "Invalid value for 'what' : valid choices are 'level', 'trend', 'hyper'")
 })
 
-
-## 'n_draw' -------------------------------------------------------------------
-
-test_that("'n_draw' works", {
+test_that("'components' gives identical answer when called twice", {
   set.seed(0)
   data <- expand.grid(time = 2001:2010, sex = c("F", "M"), region = c("A", "B"))
   data$y <- rnorm(n = nrow(data))
   fit <- fit_ts(data = data,
                 indvar = "y",
                 byvar = c("sex", "region"))
-  expect_identical(fit$n_draw, 1000L)
-  n_draw(fit) <- 1L
-  expect_identical(fit$n_draw, 1L)
+  ans0 <- components(fit)
+  ans1 <- components(fit)
+  expect_identical(ans0, ans1)
 })
+
+
+## 'n_draw' -------------------------------------------------------------------
+
+test_that("'n_draw' works - non-list inputs", {
+  set.seed(0)
+  data <- expand.grid(time = 2001:2010, sex = c("F", "M"), region = c("A", "B"))
+  data$y <- rnorm(n = nrow(data))
+  fit <- fit_ts(data = data,
+                indvar = "y",
+                byvar = c("sex", "region"))
+  expect_identical(n_draw(fit), 1000L)
+  n_draw(fit) <- 1L
+  expect_identical(n_draw(fit), 1L)
+})
+
+test_that("'n_draw' works - list inputs", {
+  set.seed(0)
+  data <- expand.grid(time = 2001:2005, sex = c("F", "M"))
+  data$y <- replicate(n = nrow(data), list(rnorm(10)))
+  fit <- fit_ts(data = data,
+                indvar = "y",
+                byvar = "sex")
+  expect_identical(n_draw(fit), 10L)
+  n_draw(fit) <- 5L
+  expect_identical(n_draw(fit), 5L)
+  expect_identical(length(fit$data[["y"]][[1L]]), 5L)
+  expect_error(n_draw(fit) <- 10,
+               "replacement value for 'n_draw' \\[10\\] greater than number of draws in inputs \\[5\\]")
+})
+

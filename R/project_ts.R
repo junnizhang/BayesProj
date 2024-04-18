@@ -80,6 +80,8 @@ project_ts <- function(fitted, time_labels, spec_bench = NULL) {
     benchmarks$.benchmarks <- rep(list(NULL), times = nrow(by))
     method_spline <- NULL
   }
+  seed_draws_fit <- fitted$seed_draws_fit
+  seed_draws_proj <- sample.int(n = .Machine$integer.max, size = 1L)
   new_BayesProj_proj(data = data,
                      indvar = indvar,
                      timevar = timevar,
@@ -92,5 +94,7 @@ project_ts <- function(fitted, time_labels, spec_bench = NULL) {
                      n_draw = n_draw,
                      labels_time_project = time_labels,
                      benchmarks = benchmarks,
-                     method_spline = method_spline)
+                     method_spline = method_spline,
+                     seed_draws_fit = seed_draws_fit,
+                     seed_draws_proj = seed_draws_proj)
 }

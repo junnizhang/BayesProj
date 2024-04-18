@@ -33,7 +33,6 @@ Imports:
 Suggests: 
     covr,
     dplyr,
-    ggdist,
     ggplot2,
     knitr,
     rmarkdown,
