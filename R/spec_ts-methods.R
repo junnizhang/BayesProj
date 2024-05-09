@@ -265,7 +265,7 @@ make_hyper.BayesProj_spec_ts_ar1 <- function(spec) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_labels_fit <- function(spec, labels_time) {
   UseMethod("make_labels_fit")
 }
@@ -300,7 +300,7 @@ make_labels_fit.BayesProj_spec_ts_ar1 <- function(spec, labels_time) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_labels_proj <- function(spec, labels_time_project) {
   UseMethod("make_labels_proj")
 }
@@ -642,7 +642,7 @@ make_trend.BayesProj_spec_ts_ar1 <- function(spec, y) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_vname_fit <- function(spec, timevar) {
   UseMethod("make_vname_fit")
 }
@@ -672,7 +672,7 @@ make_vname_fit.BayesProj_spec_ts_ar1 <- function(spec, timevar) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_vname_proj <- function(spec, timevar) {
   UseMethod("make_vname_proj")
 }
@@ -704,7 +704,7 @@ make_vname_proj.BayesProj_spec_ts_ar1 <- function(spec, timevar) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_what_fit <- function(spec, labels_time) {
   UseMethod("make_what_fit")
 }
@@ -748,7 +748,7 @@ make_what_fit.BayesProj_spec_ts_ar1 <- function(spec, labels_time) {
 #'
 #' @returns A character vector
 #'
-#' noRd
+#' @noRd
 make_what_proj <- function(spec, indvar, labels_time_project) {
   UseMethod("make_what_proj")
 }

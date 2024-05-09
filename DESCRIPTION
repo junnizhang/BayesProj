@@ -1,7 +1,7 @@
 Package: BayesProj
 Type: Package
 Title: Bayesian Projection of Demographic Indicators
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     c(person(given = "John",
              family = "Bryant",

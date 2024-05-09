@@ -17,3 +17,39 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(BayesProj)
 ```
+Let $\gamma_{at}$ be a demographic rate for age group $a$ during period $t$. The rate could, for instance, be the first marriage rate, the remarriage rate, or the divorce rate. The rate might refer to the whole population, or to a specific sub-population, such as females in rural areas in a particular province. Each of these sub-populations is, at this stage in the modelling process, modelled independently. We have draws $\gamma_{at}^{(s)}$, $s = 1, \cdots S$, from the posterior distribution for $\gamma_{at}$ for the years $t = 1, \cdots, T$.
+
+Let $\Gamma_t = \sum_{a=1}^A \gamma_{at}$ be a summary indicator for the rates, which we refer to as a "total" rate. Our aim is to draw from the distribution
+\begin{equation}
+  p(\Gamma_{T+1}, \dots, \Gamma_{T+H} \mid \Gamma_{1}, \dots, \Gamma_{T})
+\end{equation}
+
+We do this by drawing from
+\begin{equation}
+  p(\Gamma_{T+1}^{(s)}, \dots, \Gamma_{T+H}^{(s)} \mid \Gamma_{1}^{(s)}, \dots, \Gamma_{T}^{(s)})
+\end{equation}
+independently for each posterior draw $s$.
+
+## Model 1: Damped linear trend
+
+\begin{align}
+  \Gamma_t^{(s)} & \sim \text{N}(\Gamma_{t-1}^{(s)} + \delta_{t-1}^{(s)}, \tau_{\Gamma}^{(s)2}) \\
+  \delta_t^{(s)} & \sim \text{N}(\phi^{(s)} \delta_{t-1}^{(s)}, \tau_{\delta}^{(s)2}) \\
+  \phi^{(s)} & = a_0 + (a_1 - a_0) \phi_0^{(s)} \\
+  \phi_0^{(s)} & \sim \text{Beta}(2, 2) \\
+  \tau_{\Gamma}^{(s)} & \sim \text{N}^+(0, A_{\Gamma}^2) \\ 
+  \tau_{\delta}^{(s)} & \sim \text{N}^+(0, A_{\delta}^2) \\ 
+\end{align}
+By default, $a_0 = 0.8$, $a_1 = 0.98$, $A_{\Gamma} = ??$, and $A_{\delta} = ??$. (We will need to experiment with values.)
+
+
+<!-- ## Model 2: AR1 -->
+
+<!-- \begin{align} -->
+<!--   \Gamma_t^{(s)} & \sim \text{N}(\phi^{(s)} \Gamma_{t-1}^{(s)} + (1 - \phi^{(s)}) \alpha, \tau^{(s)2}) \\ -->
+<!--   \alpha & \sim N(m, b^2) \\ -->
+<!--   \phi^{(s)} & = a_0 + (a_1 - a_0) \phi_0^{(s)} \\ -->
+<!--   \phi_0^{(s)} & \sim \text{Beta}(2, 2) \\ -->
+<!--   \tau^{(s)} & \sim \text{N}^+(0, A^2) \\  -->
+<!-- \end{align} -->
+<!-- By default, $a_0 = 0.8$, $a_1 = 0.98$, $A = 0.1???$. Values for $m$ and $b$ depend on the indicator in question. -->
