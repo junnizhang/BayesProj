@@ -68,13 +68,17 @@ composite <- function(x, interval = 0.95) {
                   .lower = NA_real_,
                   .upper = NA_real_)
   }
-  data[[timevar]] <- convert_factor_to_integer(data[[timevar]])
+  if (is.factor(data[[timevar]]))
+    data[[timevar]] <- convert_factor_to_integer(data[[timevar]])
   data <- cbind(.variant = "Estimated", data)
   aug <- aug[-match(".probability", names(aug))]
   names(aug)[match(".fitted", names(aug))] <- indvar
-  aug[[timevar]] <- convert_factor_to_integer(aug[[timevar]])
+  if (is.factor(aug[[timevar]]))
+    aug[[timevar]] <- convert_factor_to_integer(aug[[timevar]])
   aug <- cbind(.variant = "Projected", aug)
   ans <- rbind(data, aug)
+  if (is.character(ans[[timevar]]))
+    ans[[timevar]] <- as.integer(ans[[timevar]])
   is_final <- ans[[timevar]] == max(data[[timevar]])
   if (!is_ind_list) {
     ans[[".lower"]][is_final] <- ans[[indvar]][is_final]
