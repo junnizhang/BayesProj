@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# BayesRates
+# BayesProj
 
 <!-- badges: start -->
 
@@ -18,7 +18,7 @@ benchmarks.
 [ProFamy](https://link.springer.com/article/10.1007/s42379-024-00171-6)
 household projection method.
 
-Work on **BayesRates** has been supported by funding from the Chinese
+Work on **BayesProj** has been supported by funding from the Chinese
 Ministry of Science and Technology.
 
 ## Installation
