@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# BayesRates
+# BayesProj
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -23,7 +23,7 @@ Using Bayesian methods, project demographic indicators. Optionally, incorporate 
 
 **BayesProj** is part of a larger project to extend the [ProFamy](https://link.springer.com/article/10.1007/s42379-024-00171-6) household projection method.
 
-Work on **BayesRates** has been supported by funding from the Chinese Ministry of Science and Technology.
+Work on **BayesProj** has been supported by funding from the Chinese Ministry of Science and Technology.
 
 
 ## Installation
