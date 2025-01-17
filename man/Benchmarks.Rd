@@ -87,6 +87,18 @@ for \code{\link[stats:splinefun]{stats::splinefun()}} for advice on appropriate
 methods for extrapolation.
 }
 
+\examples{
+df <- data.frame(time = 2030,
+                 q50 = 1.7,
+                 q90 = 2.1)
+Benchmarks(df)
+
+df2 <- data.frame(time = c(2030, 2030),
+                  area = c("Urban", "Rural"),
+                  q50 = c(1.5, 1.8),
+                  q90 = c(2, 2.1))
+Benchmarks(df2)
+}
 \seealso{
 \itemize{
 \item The object created a call to \code{Benchmarks()}
