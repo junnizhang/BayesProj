@@ -18,6 +18,25 @@ test_that("composite' works without benchmarks, numeric indvar", {
   expect_identical(nrow(ans), 20L)
 })
 
+test_that("composite' works without benchmarks, has extract columns", {
+  set.seed(0)
+  data <- data.frame(time = rep(1:5, 2),
+                     sex = rep(c("f", "m"), each = 5),
+                     y = rnorm(10, mean = 11:15),
+                     extra = rep(1, 5))
+  fitted <- fit_ts(data,
+                   indvar = "y",
+                   byvar = "sex",
+                   spec_ts = DampedTrend())
+  n_draw(fitted) <- 5
+  projected <- project_ts(fitted,
+                          time_labels = 6:10)
+  ans <- composite(projected)
+  expect_setequal(names(ans), c(".variant", "time", "sex",
+                                "y", ".lower", ".upper"))
+  expect_identical(nrow(ans), 20L)
+})
+
 test_that("composite' works with benchmarks, numeric indvar", {
   set.seed(0)
   data <- data.frame(time = rep(1:5, 2),

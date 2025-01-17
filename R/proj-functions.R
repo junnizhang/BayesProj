@@ -76,6 +76,7 @@ composite <- function(x, interval = 0.95) {
   if (is.factor(aug[[timevar]]))
     aug[[timevar]] <- convert_factor_to_integer(aug[[timevar]])
   aug <- cbind(.variant = "Projected", aug)
+  data <- data[names(aug)]
   ans <- rbind(data, aug)
   if (is.character(ans[[timevar]]))
     ans[[timevar]] <- as.integer(ans[[timevar]])
