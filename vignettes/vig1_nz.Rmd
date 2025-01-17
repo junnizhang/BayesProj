@@ -1,0 +1,241 @@
+---
+title: "Divorces in New Zealand"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Divorces in New Zealand}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  fig.width = 7,
+  fig.height = 5,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+In this vignette we use **BayesRates** and **BayesProj** to estimate and project the total divorce rate in New Zealand. The analysis builds on ` vignette("Divorces in New Zealand", package = "BayesRates")` in the **BayesRates** package, so it might be helpful to read that first.
+
+# Preliminaries
+
+In addition to **BayesProj** itself we need the **BayesRates**, **dplyr**, and **ggplot2** packages.
+
+```{r setup}
+library(BayesProj)
+library(BayesRates)
+library(dplyr)
+library(ggplot2)
+```
+
+The data is the same as the **BayesRates** vignette, data frames `nz_divorces` and `nz_population`.
+
+# Estimating historical trends
+
+We use package **BayesRates** to construct a historical series for the total divorce rate (TDR).
+
+The first step is to estimate age-specific rates with `smooth_agetime()`.
+
+```{r}
+res <- smooth_agetime(nevent_df = nz_divorces,
+                      py_df = nz_population,
+                      age_width_df = nz_age_width_df,
+                      age_min = 15,
+                      byvar = "sex")
+res
+```
+
+To speed up subsequent calculations, we reduce the number of posterior draws from the default value of 1000 to 100. (For publication-quality estimates, we would use a value of 1000, or possibly higher.)
+
+```{r}
+n_draw(res) <- 100
+res
+```
+
+The second step is turning age-specific rates into a total divorce rate, which is done with function `total_rates()`.
+
+```{r}
+TDR <- total_rate(res)
+TDR
+```
+
+
+# Fit a time series model
+
+We now switch to package **BayesProj**. The estimates of the TDR serve as input data for functions in **BayesProj**. We select the variables we want from `TDR` data fame, and rename the `.probability` column, which holds the set of posterior draws for the TDR.
+
+```{r}
+data <- TDR |>
+  select(sex, time, TDR = .probability)
+```
+
+We use function `fit_ts()` to fit a time series model to the TDR. The `indvar` argument tells `fit_ts()` which variable is the demographic indicator being modelled. Setting `byvar` to `"sex"` tells `fit_ts()` to fit a separate model for each value of `"sex"`.
+
+```{r}
+fitted <- fit_ts(data, 
+                 indvar = "TDR",
+                 byvar = "sex")
+fitted		 
+```
+
+We use the fitted model to project future values.
+
+```{r}
+projected <- project_ts(fitted, 
+                        time_labels = 2022:2030)
+projected			
+```
+
+We use `composite()` extract both the historical and projected values, and then graph the result.
+
+```{r}
+vals <- composite(projected)
+
+ggplot(vals, aes(x = time, y = TDR)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkred", 
+            linewidth = 0.5)
+```
+
+# Alternative time series model
+
+By default `fit_ts()` uses a "damped linear trend" time series model. Parameter settings for the damped linear trend model are controlled by function `DampedTrend()`.
+
+An alternative to s damped linear trend model is a first-order autoregressive model, specifiied via function `AR1()`.
+
+```{r}
+fitted_ar <- fit_ts(data,
+                    spec_ts = AR1(),
+                    indvar = "TDR",
+                    byvar = "sex")
+fitted_ar		    
+```
+
+The AR1 model assumes that values converge to a long-run mean. As in the graph below, it typically leads to different projections from the damped linear trend.
+
+```{r}
+projected_ar <- project_ts(fitted_ar, 
+                           time_labels = 2022:2030)
+
+vals_ar <- composite(projected_ar)
+
+ggplot(vals_ar, aes(x = time, y = TDR)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkred", 
+            linewidth = 0.5)
+```
+
+
+# Add benchmarks to projection
+
+Sometimes the person making a demographic projection has information about likely future values beyond what is contained in the historical time series. For instance, a person making projections for the total divorce rate in New Zealand might have information about the TDR in countries that are similar to New Zealand.
+
+**BayesProj** allows users represent external information about an indicator using "benchmarks". To create a benchmark the user specifies a distribution for the indicator in one or more future periods. In the case of the TDR, for instance, we can create a benchmark using 
+
+```{r}
+bench <- Benchmarks(data.frame(time = 2030,
+                               q50 = 0.2,
+                               q90 = 0.25))
+```
+
+The `bench` object gives the median (`q50`) and 90th percentile (`q90`) for a normal distribution that represents our external information about the likely range for the TDR in 2030. Higher values for `q50` and `q90` would imply that we expected the TDR to be higher in 2030. Keeping `q50` the same but increasing the value for `q90` would imply that we had greater uncertainty.
+
+If a benchmark only specifies some future years, then **BayesProj** uses splines to interpolate.
+
+We create a new projection that incorporates the benchmark.
+
+```{r}
+projected_bench <- project_ts(fitted, 
+                              spec_bench = bench,
+                              time_labels = 2022:2030)
+projected_bench			      		  
+```
+
+We plot the projection results (orange) together with the distribution implied by benchmark (blue). Adding a benchmark has changed the projection.
+
+```{r}
+vals_bench <- composite(projected_bench)
+
+ggplot(vals_bench, aes(x = time, y = TDR)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkred", 
+            linewidth = 0.5) +
+  geom_ribbon(aes(ymin = .bench.lower,
+                  ymax = .bench.upper),
+              fill = "lightblue",
+              alpha = 0.5) +
+  geom_line(aes(y = .bench.mid),
+            col = "blue",
+            linewidth = 0.5,
+            alpha = 0.5)
+```
+
+Using a higher value for `q90`, implying weaker benchmarks, reduces the influence of the benchmars.
+
+```{r}
+bench_weak <- Benchmarks(data.frame(time = 2030,
+                                    q50 = 0.2,
+                                    q90 = 0.4)) ## 0.4 not 0.25
+
+projected_bench_weak <- project_ts(fitted, 
+                                   spec_bench = bench_weak,
+                                   time_labels = 2022:2030)
+
+
+vals_bench_weak <- composite(projected_bench_weak)
+
+ggplot(vals_bench_weak, aes(x = time, y = TDR)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkred", 
+            linewidth = 0.5) +
+  geom_ribbon(aes(ymin = .bench.lower,
+                  ymax = .bench.upper),
+              fill = "lightblue",
+              alpha = 0.5) +
+  geom_line(aes(y = .bench.mid),
+            col = "blue",
+            linewidth = 0.5,
+            alpha = 0.5)
+```
+
+
+# Switching to a log scale
+
+Most demographic indicators are, by definition, non-negative. Nothing in the models that we have presented so far force the projections to be non-negative. This can occasionally lead to projections with negative values, if historical trends are downwards.
+
+To enforce non-negative values in **BayesProj**, we fit the time series model on the log scale. This is done by setting the `log` argument in `fit_ts()` to `TRUE`.
+
+```{r}
+fitted_log <- fit_ts(data, 
+                     indvar = "TDR",
+                     byvar = "sex", 
+                     log = TRUE)
+fitted_log		     
+```
+
+From that point on, everything proceeds as normal.
+
+```{r}
+projected_log <- project_ts(fitted_log, 
+                            time_labels = 2022:2030)
+
+vals_log <- composite(projected_log)
+
+ggplot(vals_log, aes(x = time, y = TDR)) +
+  facet_wrap(vars(sex)) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), 
+              fill = "salmon") +
+  geom_line(col = "darkred", 
+            linewidth = 0.5)
+```
