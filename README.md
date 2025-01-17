@@ -7,6 +7,7 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/junnizhang/BayesProj/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/junnizhang/BayesProj/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Using Bayesian methods, project demographic indicators. Optionally,
@@ -36,6 +37,14 @@ devtools::install_github("junnizhang/BayesProj")
 library(BayesRates)
 library(BayesProj)
 library(dplyr)
+#> 
+#> Attaching package: 'dplyr'
+#> The following objects are masked from 'package:stats':
+#> 
+#>     filter, lag
+#> The following objects are masked from 'package:base':
+#> 
+#>     intersect, setdiff, setequal, union
 library(ggplot2)
 ```
 
